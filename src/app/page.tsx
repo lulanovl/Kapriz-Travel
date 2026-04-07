@@ -1,5 +1,6 @@
 // Root / — public home page (manually wraps with Header/Footer)
 // The (site)/layout.tsx handles Header/Footer for all sub-routes (/tours, /about, etc.)
+export const dynamic = "force-dynamic";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import HeroSection from "@/components/site/HeroSection";

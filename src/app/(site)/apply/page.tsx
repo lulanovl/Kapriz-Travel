@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import ApplyForm from "./ApplyForm";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Оставить заявку — Kapriz Travel",
   description: "Заполните форму и мы свяжемся с вами в WhatsApp в течение часа.",

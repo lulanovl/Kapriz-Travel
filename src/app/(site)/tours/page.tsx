@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import ToursClient from "./ToursClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Все туры — Kapriz Travel",
   description: "Однодневные и многодневные туры по Кыргызстану, Казахстану и Узбекистану. Выберите свой маршрут.",

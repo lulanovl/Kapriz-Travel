@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 import ItineraryView from "./ItineraryView";
 
