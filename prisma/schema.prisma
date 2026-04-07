@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SENIOR_MANAGER
+  MANAGER
+  FINANCE
+}
+
+enum ApplicationStatus {
+  NEW
+  CONTACT
+  PROPOSAL
+  DEPOSIT
+  NO_SHOW
+  ON_TOUR
+  FEEDBACK
+  ARCHIVE
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum Currency {
+  KGS
+  USD
+  EUR
+}
+
+enum ExpenseCategory {
+  GUIDE
+  DRIVER
+  TRANSPORT
+  ACCOMMODATION
+  FOOD
+  OTHER
+}
+
+// ─── 1. Users (CRM staff) ───────────────────────────────────────────────────
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  password       String
+  role           Role      @default(MANAGER)
+  telegramChatId String?
+  createdAt      DateTime  @default(now())
+
+  applications   Application[]
+  reminders      Reminder[]
+
+  @@map("users")
+}
+
+// ─── 2. Clients (tourists) ──────────────────────────────────────────────────
+model Client {
+  id          String    @id @default(cuid())
+  name        String
+  whatsapp    String    @unique
+  country     String?
+  city        String?
+  tag         String?
+  source      String?
+  notes       String?
+  noShow      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  applications Application[]
+  reviews      Review[]
+
+  @@map("clients")
+}
+
+// ─── 3. Tours ───────────────────────────────────────────────────────────────
+model Tour {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  description    String?   @db.Text
+  itinerary      Json?
+  included       Json?
+  notIncluded    Json?
+  basePrice      Int
+  minGroupSize   Int       @default(1)
+  maxGroupSize   Int       @default(20)
+  duration       Int?
+  tourType       String?
+  isActive       Boolean   @default(true)
+  images         Json?
+  mapEmbed       String?
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tourDates    TourDate[]
+  applications Application[]
+
+  @@map("tours")
+}
+
+// ─── 4. Tour Dates (groups) ─────────────────────────────────────────────────
+model TourDate {
+  id        String   @id @default(cuid())
+  tourId    String
+  startDate DateTime
+  endDate   DateTime
+  maxSeats  Int      @default(10)
+  guideId   String?
+  driverId  String?
+  createdAt DateTime @default(now())
+
+  tour         Tour          @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  guide        Staff?        @relation("TourDateGuide", fields: [guideId], references: [id])
+  driver       Staff?        @relation("TourDateDriver", fields: [driverId], references: [id])
+  applications Application[]
+  expenses     Expense[]
+  reviews      Review[]
+  guideTokens  GuideToken[]
+
+  @@map("tour_dates")
+}
+
+// ─── 5. Applications ────────────────────────────────────────────────────────
+model Application {
+  id            String            @id @default(cuid())
+  clientId      String
+  tourId        String
+  tourDateId    String?
+  persons       Int               @default(1)
+  preferredDate String?
+  comment       String?           @db.Text
+  status        ApplicationStatus @default(NEW)
+  managerId     String?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  isWaitlist    Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  client    Client    @relation(fields: [clientId], references: [id])
+  tour      Tour      @relation(fields: [tourId], references: [id])
+  tourDate  TourDate? @relation(fields: [tourDateId], references: [id])
+  manager   User?     @relation(fields: [managerId], references: [id])
+  booking   Booking?
+  reminders Reminder[]
+
+  @@map("applications")
+}
+
+// ─── 6. Bookings ────────────────────────────────────────────────────────────
+model Booking {
+  id                String        @id @default(cuid())
+  applicationId     String        @unique
+  basePrice         Int
+  finalPrice        Int
+  priceChangeReason String?
+  currency          Currency      @default(KGS)
+  depositPaid       Int           @default(0)
+  depositDate       DateTime?
+  paymentStatus     PaymentStatus @default(PENDING)
+  noShow            Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  application  Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  priceHistory PriceHistory[]
+
+  @@map("bookings")
+}
+
+// ─── 7. Price History ───────────────────────────────────────────────────────
+model PriceHistory {
+  id        String   @id @default(cuid())
+  bookingId String
+  changedBy String
+  oldPrice  Int
+  newPrice  Int
+  reason    String?
+  changedAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("price_history")
+}
+
+// ─── 8. Expenses ────────────────────────────────────────────────────────────
+model Expense {
+  id         String          @id @default(cuid())
+  tourDateId String
+  category   ExpenseCategory
+  amount     Int
+  currency   Currency        @default(KGS)
+  note       String?
+  createdAt  DateTime        @default(now())
+
+  tourDate TourDate @relation(fields: [tourDateId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+// ─── 9. Staff (guides & drivers) ────────────────────────────────────────────
+model Staff {
+  id             String  @id @default(cuid())
+  name           String
+  role           String
+  phone          String?
+  telegramChatId String?
+
+  guideTourDates  TourDate[] @relation("TourDateGuide")
+  driverTourDates TourDate[] @relation("TourDateDriver")
+
+  @@map("staff")
+}
+
+// ─── 10. Reminders ──────────────────────────────────────────────────────────
+model Reminder {
+  id            String   @id @default(cuid())
+  applicationId String
+  userId        String
+  dueAt         DateTime
+  note          String?
+  isDone        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@map("reminders")
+}
+
+// ─── 11. Reviews ────────────────────────────────────────────────────────────
+model Review {
+  id          String   @id @default(cuid())
+  clientId    String
+  tourDateId  String
+  rating      Int
+  text        String?  @db.Text
+  isPublished Boolean  @default(false)
+  token       String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+
+  client   Client   @relation(fields: [clientId], references: [id])
+  tourDate TourDate @relation(fields: [tourDateId], references: [id])
+
+  @@map("reviews")
+}
+
+// ─── 12. Guide Tokens ───────────────────────────────────────────────────────
+model GuideToken {
+  id         String   @id @default(cuid())
+  tourDateId String
+  token      String   @unique @default(cuid())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  tourDate TourDate @relation(fields: [tourDateId], references: [id], onDelete: Cascade)
+
+  @@map("guide_tokens")
+}
