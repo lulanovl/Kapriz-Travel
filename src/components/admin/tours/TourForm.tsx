@@ -320,7 +320,7 @@ export default function TourForm({ tourId, initialData }: Props) {
           </p>
 
           <CldUploadWidget
-            uploadPreset="kapriz_tours"
+            uploadPreset="kapriz_travel"
             options={{ multiple: true, maxFiles: 20, resourceType: "image" }}
             onSuccess={(result) => {
               if (
