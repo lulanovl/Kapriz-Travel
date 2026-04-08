@@ -44,6 +44,11 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
 
+  // Guide token state: dateId → { token, expiresAt, copied, generating }
+  const [guideTokens, setGuideTokens] = useState<
+    Record<string, { token: string; expiresAt: string; copied: boolean; generating: boolean }>
+  >({});
+
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
   }
@@ -102,6 +107,47 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
     if (res.ok) {
       setDates((prev) => prev.filter((d) => d.id !== dateId));
     }
+  }
+
+  async function generateGuideToken(dateId: string) {
+    setGuideTokens((prev) => ({
+      ...prev,
+      [dateId]: { ...prev[dateId], token: prev[dateId]?.token ?? "", expiresAt: "", copied: false, generating: true },
+    }));
+
+    try {
+      const res = await fetch(`/api/admin/tour-dates/${dateId}/guide-token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: 30 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGuideTokens((prev) => ({
+          ...prev,
+          [dateId]: { token: data.token, expiresAt: data.expiresAt, copied: false, generating: false },
+        }));
+      }
+    } catch {
+      setGuideTokens((prev) => ({
+        ...prev,
+        [dateId]: { ...prev[dateId], generating: false },
+      }));
+    }
+  }
+
+  function copyGuideLink(dateId: string) {
+    const tokenData = guideTokens[dateId];
+    if (!tokenData?.token) return;
+    const url = `${window.location.origin}/guide/${tokenData.token}`;
+    navigator.clipboard.writeText(url);
+    setGuideTokens((prev) => ({ ...prev, [dateId]: { ...tokenData, copied: true } }));
+    setTimeout(() => {
+      setGuideTokens((prev) => ({
+        ...prev,
+        [dateId]: { ...prev[dateId], copied: false },
+      }));
+    }, 2500);
   }
 
   function availabilityColor(date: TourDate) {
@@ -196,43 +242,98 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
           Нет дат. Добавьте первую дату отправления.
         </div>
       ) : (
-        <div className="space-y-2">
-          {dates.map((date) => (
-            <div
-              key={date.id}
-              className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-5 py-3"
-            >
-              <div className="flex items-center gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    {formatDate(date.startDate)} — {formatDate(date.endDate)}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {date._count.applications}/{date.maxSeats} участников
-                  </p>
+        <div className="space-y-3">
+          {dates.map((date) => {
+            const tokenData = guideTokens[date.id];
+            return (
+              <div key={date.id} className="bg-white border border-gray-200 rounded-xl px-5 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {formatDate(date.startDate)} — {formatDate(date.endDate)}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {date._count.applications}/{date.maxSeats} участников
+                      </p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${availabilityColor(date)}`}>
+                      {availabilityLabel(date)}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {/* Guide token button */}
+                    {!tokenData?.token ? (
+                      <button
+                        onClick={() => generateGuideToken(date.id)}
+                        disabled={tokenData?.generating}
+                        className="text-sm text-purple-600 hover:text-purple-800 px-3 py-1 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 font-medium"
+                        title="Сгенерировать ссылку для гида"
+                      >
+                        {tokenData?.generating ? "..." : "🔗 Гиду"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => copyGuideLink(date.id)}
+                        className={`text-sm px-3 py-1 rounded-lg transition-colors font-medium ${
+                          tokenData.copied
+                            ? "text-green-700 bg-green-50"
+                            : "text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                        }`}
+                        title="Скопировать ссылку"
+                      >
+                        {tokenData.copied ? "✓ Скопировано" : "📋 Скопировать ссылку"}
+                      </button>
+                    )}
+                    {tokenData?.token && (
+                      <button
+                        onClick={() => generateGuideToken(date.id)}
+                        disabled={tokenData.generating}
+                        className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
+                        title="Обновить ссылку (старая перестанет работать)"
+                      >
+                        ↺
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => startEdit(date)}
+                      className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      Изменить
+                    </button>
+                    <button
+                      onClick={() => handleDelete(date.id)}
+                      disabled={date._count.applications > 0}
+                      title={date._count.applications > 0 ? "Нельзя удалить — есть участники" : ""}
+                      className="text-sm text-gray-500 hover:text-red-600 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${availabilityColor(date)}`}>
-                  {availabilityLabel(date)}
-                </span>
+
+                {/* Guide link info */}
+                {tokenData?.token && (
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">
+                      <span className="font-medium text-purple-600">Ссылка гиду</span>
+                      {" · "}действует до{" "}
+                      {new Date(tokenData.expiresAt).toLocaleDateString("ru", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-400 font-mono truncate mt-0.5">
+                      {window?.location?.origin}/guide/{tokenData.token}
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => startEdit(date)}
-                  className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  Изменить
-                </button>
-                <button
-                  onClick={() => handleDelete(date.id)}
-                  disabled={date._count.applications > 0}
-                  title={date._count.applications > 0 ? "Нельзя удалить — есть участники" : ""}
-                  className="text-sm text-gray-500 hover:text-red-600 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  Удалить
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
