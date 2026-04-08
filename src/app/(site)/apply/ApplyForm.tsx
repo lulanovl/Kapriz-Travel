@@ -10,17 +10,32 @@ interface Tour {
   basePrice: number;
 }
 
+interface TourDate {
+  id: string;
+  startDate: string;
+  endDate: string;
+  maxSeats: number;
+  _count: { applications: number };
+}
+
 interface FormData {
   name: string;
   whatsapp: string;
   country: string;
   tourId: string;
-  preferredDate: string;
+  tourDateId: string;
   persons: string;
   comment: string;
   utmSource: string;
   utmMedium: string;
   utmCampaign: string;
+}
+
+function formatDateRange(start: string, end: string) {
+  const s = new Date(start);
+  const e = new Date(end);
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "long" };
+  return `${s.toLocaleDateString("ru-RU", opts)} — ${e.toLocaleDateString("ru-RU", { ...opts, year: "numeric" })}`;
 }
 
 function ApplyFormInner({ tours }: { tours: Tour[] }) {
@@ -34,13 +49,16 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     whatsapp: "",
     country: "",
     tourId: "",
-    preferredDate: "",
+    tourDateId: "",
     persons: "1",
     comment: "",
     utmSource: "",
     utmMedium: "",
     utmCampaign: "",
   });
+
+  const [tourDates, setTourDates] = useState<TourDate[]>([]);
+  const [datesLoading, setDatesLoading] = useState(false);
 
   // Pre-fill tour from URL param and capture UTMs
   useEffect(() => {
@@ -54,11 +72,27 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     setForm((prev) => ({
       ...prev,
       tourId: matchedTour?.id ?? "",
+      tourDateId: "",
       utmSource,
       utmMedium,
       utmCampaign,
     }));
   }, [searchParams, tours]);
+
+  // Load available dates when tour changes
+  useEffect(() => {
+    if (!form.tourId) {
+      setTourDates([]);
+      return;
+    }
+    setDatesLoading(true);
+    setForm((prev) => ({ ...prev, tourDateId: "" }));
+    fetch(`/api/site/tours/${form.tourId}/dates`)
+      .then((r) => r.json())
+      .then((data) => setTourDates(Array.isArray(data) ? data : []))
+      .catch(() => setTourDates([]))
+      .finally(() => setDatesLoading(false));
+  }, [form.tourId]);
 
   function set(field: keyof FormData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -67,6 +101,12 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!form.tourDateId && tourDates.length > 0) {
+      setError("Пожалуйста, выберите дату тура.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -168,37 +208,60 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
         </select>
       </div>
 
-      {/* Date + Persons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Tour date */}
+      {form.tourId && (
         <div>
-          <label htmlFor="preferredDate" className={labelClass}>
-            Желаемая дата
+          <label htmlFor="tourDateId" className={labelClass}>
+            Дата тура <span className="text-red-500">*</span>
           </label>
-          <input
-            id="preferredDate"
-            type="date"
-            value={form.preferredDate}
-            onChange={(e) => set("preferredDate", e.target.value)}
-            className={inputClass}
-          />
+          {datesLoading ? (
+            <div className="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-sm text-gray-400 bg-gray-50">
+              Загружаем даты...
+            </div>
+          ) : tourDates.length === 0 ? (
+            <div className="w-full px-4 py-3.5 border border-yellow-200 rounded-xl text-sm text-yellow-700 bg-yellow-50">
+              Нет доступных дат. Свяжитесь с нами напрямую.
+            </div>
+          ) : (
+            <select
+              id="tourDateId"
+              required
+              value={form.tourDateId}
+              onChange={(e) => set("tourDateId", e.target.value)}
+              className={`${inputClass} cursor-pointer`}
+            >
+              <option value="">— Выберите дату —</option>
+              {tourDates.map((d) => {
+                const free = d.maxSeats - d._count.applications;
+                return (
+                  <option key={d.id} value={d.id}>
+                    {formatDateRange(d.startDate, d.endDate)}
+                    {free <= 5 ? ` · осталось ${free} мест` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          )}
         </div>
-        <div>
-          <label htmlFor="persons" className={labelClass}>
-            Кол-во человек
-          </label>
-          <select
-            id="persons"
-            value={form.persons}
-            onChange={(e) => set("persons", e.target.value)}
-            className={`${inputClass} cursor-pointer`}
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <option key={n} value={n}>
-                {n} {n === 1 ? "человек" : n <= 4 ? "человека" : "человек"}
-              </option>
-            ))}
-          </select>
-        </div>
+      )}
+
+      {/* Persons */}
+      <div>
+        <label htmlFor="persons" className={labelClass}>
+          Кол-во человек
+        </label>
+        <select
+          id="persons"
+          value={form.persons}
+          onChange={(e) => set("persons", e.target.value)}
+          className={`${inputClass} cursor-pointer`}
+        >
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <option key={n} value={n}>
+              {n} {n === 1 ? "человек" : n <= 4 ? "человека" : "человек"}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Comment */}

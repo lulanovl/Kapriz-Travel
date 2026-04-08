@@ -41,7 +41,7 @@ export async function PUT(
   const body = await req.json();
   const { title, description, tourType, duration, basePrice, minGroupSize,
     maxGroupSize, itinerary, included, notIncluded, mapEmbed,
-    seoTitle, seoDescription, slug, isActive } = body;
+    seoTitle, seoDescription, slug, isActive, images } = body;
 
   const tour = await prisma.tour.update({
     where: { id: params.id },
@@ -61,6 +61,7 @@ export async function PUT(
       seoTitle,
       seoDescription,
       isActive: Boolean(isActive),
+      images: images ?? [],
     },
   });
 

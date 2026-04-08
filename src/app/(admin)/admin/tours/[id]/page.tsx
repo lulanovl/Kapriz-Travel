@@ -43,6 +43,7 @@ export default async function TourDetailPage({
   const itinerary = (tour.itinerary as { day: number; title: string; description: string }[]) ?? [];
   const included = (tour.included as string[]) ?? [];
   const notIncluded = (tour.notIncluded as string[]) ?? [];
+  const images = (tour.images as string[]) ?? [];
 
   return (
     <>
@@ -73,6 +74,7 @@ export default async function TourDetailPage({
                   itinerary,
                   included,
                   notIncluded,
+                  images,
                 }} />
               </div>
             ) : (

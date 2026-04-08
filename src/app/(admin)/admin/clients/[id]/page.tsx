@@ -65,7 +65,7 @@ export default async function ClientDetailPage({
   const isRepeat = totalApplications > 1;
 
   return (
-    <div>
+    <div className="p-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
         <Link href="/admin/clients" className="hover:text-blue-600">

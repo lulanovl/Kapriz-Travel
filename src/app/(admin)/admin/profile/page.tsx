@@ -25,7 +25,7 @@ export default async function ProfilePage() {
   const botName = process.env.TELEGRAM_BOT_NAME ?? "KaprizTravelBot";
 
   return (
-    <div className="max-w-2xl">
+    <div className="p-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Профиль</h1>
 
       {/* User info */}

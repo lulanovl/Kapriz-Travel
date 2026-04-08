@@ -57,7 +57,7 @@ export default async function ApplicationsPage() {
   const total = serialized.length;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col p-6">
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Заявки</h1>

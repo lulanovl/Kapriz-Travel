@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       whatsapp,
       country,
       tourId,
-      preferredDate,
+      tourDateId,
       persons,
       comment,
       utmSource,
@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
       data: {
         clientId: client.id,
         tourId,
+        tourDateId: tourDateId || null,
         persons: Number(persons) || 1,
-        preferredDate: preferredDate || null,
         comment: comment?.trim() || null,
         status: "NEW",
         utmSource: utmSource || null,
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         country: country.trim(),
         tourTitle: tour.title,
         persons: Number(persons) || 1,
-        preferredDate: preferredDate || null,
+        preferredDate: null,
         comment: comment?.trim() || null,
         utmSource: utmSource || null,
       });

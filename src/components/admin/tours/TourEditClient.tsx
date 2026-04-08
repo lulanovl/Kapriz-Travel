@@ -20,6 +20,7 @@ interface TourData {
   itinerary: { day: number; title: string; description: string }[];
   included: string[];
   notIncluded: string[];
+  images?: string[];
 }
 
 export default function TourEditClient({ tour }: { tour: TourData }) {
@@ -104,6 +105,7 @@ export default function TourEditClient({ tour }: { tour: TourData }) {
           itinerary: tour.itinerary,
           included: tour.included,
           notIncluded: tour.notIncluded,
+          images: tour.images ?? [],
         }}
       />
     </div>

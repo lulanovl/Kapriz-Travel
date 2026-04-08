@@ -23,6 +23,7 @@
     "dotenv": "^17.4.1",
     "next": "14.2.35",
     "next-auth": "^4.24.13",
+    "next-cloudinary": "^6.17.5",
     "prisma": "^5.22.0",
     "react": "^18",
     "react-dom": "^18"

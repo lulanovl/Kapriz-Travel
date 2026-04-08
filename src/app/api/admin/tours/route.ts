@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { title, description, tourType, duration, basePrice, minGroupSize,
     maxGroupSize, itinerary, included, notIncluded, mapEmbed,
-    seoTitle, seoDescription, slug: customSlug } = body;
+    seoTitle, seoDescription, slug: customSlug, images } = body;
 
   if (!title || !basePrice) {
     return NextResponse.json({ error: "title и basePrice обязательны" }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       mapEmbed,
       seoTitle,
       seoDescription,
+      images: images ?? [],
     },
   });
 

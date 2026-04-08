@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ItineraryBuilder from "./ItineraryBuilder";
 import ListEditor from "./ListEditor";
+import { CldUploadWidget } from "next-cloudinary";
 
 interface ItineraryDay {
   day: number;
@@ -27,6 +28,7 @@ interface TourFormData {
   itinerary: ItineraryDay[];
   included: string[];
   notIncluded: string[];
+  images: string[];
 }
 
 interface Props {
@@ -60,6 +62,7 @@ const TOUR_TYPES = [
 
 const TABS = [
   { id: "main", label: "Основное" },
+  { id: "photos", label: "Фото" },
   { id: "itinerary", label: "Программа" },
   { id: "included", label: "Включено/нет" },
   { id: "seo", label: "SEO" },
@@ -89,6 +92,7 @@ export default function TourForm({ tourId, initialData }: Props) {
     itinerary: [],
     included: [],
     notIncluded: [],
+    images: [],
     ...initialData,
   });
 
@@ -303,6 +307,89 @@ export default function TourForm({ tourId, initialData }: Props) {
               <span className="text-sm font-medium text-gray-700">
                 {form.isActive ? "Тур активен (виден на сайте)" : "Тур неактивен (скрыт)"}
               </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Photos ── */}
+      {activeTab === "photos" && (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Загрузите фотографии тура. Первое фото используется как обложка.
+          </p>
+
+          <CldUploadWidget
+            uploadPreset="kapriz_tours"
+            options={{ multiple: true, maxFiles: 20, resourceType: "image" }}
+            onSuccess={(result) => {
+              if (
+                result.event === "success" &&
+                typeof result.info === "object" &&
+                result.info !== null &&
+                "secure_url" in result.info
+              ) {
+                const url = (result.info as { secure_url: string }).secure_url;
+                set("images", [...form.images, url]);
+              }
+            }}
+          >
+            {({ open }) => (
+              <button
+                type="button"
+                onClick={() => open()}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              >
+                + Загрузить фото
+              </button>
+            )}
+          </CldUploadWidget>
+
+          {form.images.length === 0 ? (
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center text-gray-400 text-sm">
+              Фото не добавлены
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {form.images.map((url, idx) => (
+                <div key={url} className="relative group rounded-xl overflow-hidden aspect-video bg-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Фото ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {idx === 0 && (
+                    <span className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      Обложка
+                    </span>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    {idx > 0 && (
+                      <button
+                        type="button"
+                        title="Сделать обложкой"
+                        onClick={() => {
+                          const imgs = [...form.images];
+                          imgs.splice(idx, 1);
+                          set("images", [url, ...imgs]);
+                        }}
+                        className="bg-white text-gray-800 text-xs px-2 py-1 rounded hover:bg-gray-100"
+                      >
+                        ★
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      title="Удалить"
+                      onClick={() => set("images", form.images.filter((_, i) => i !== idx))}
+                      className="bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
