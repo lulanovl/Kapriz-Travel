@@ -8,8 +8,6 @@ function formatDate(d: Date) {
 }
 
 export default async function CalendarPage() {
-  const session = await getServerSession(authOptions);
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in90days = new Date(today);
