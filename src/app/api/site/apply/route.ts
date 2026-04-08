@@ -66,34 +66,35 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send Telegram notifications to all linked managers/admins (non-blocking)
-    const notifText = formatApplicationNotification({
-      clientName: client.name,
-      whatsapp: client.whatsapp,
-      country: country.trim(),
-      tourTitle: tour.title,
-      persons: Number(persons) || 1,
-      preferredDate: preferredDate || null,
-      comment: comment?.trim() || null,
-      utmSource: utmSource || null,
-    });
+    // Send Telegram notifications to all linked managers/admins
+    try {
+      const notifText = formatApplicationNotification({
+        clientName: client.name,
+        whatsapp: client.whatsapp,
+        country: country.trim(),
+        tourTitle: tour.title,
+        persons: Number(persons) || 1,
+        preferredDate: preferredDate || null,
+        comment: comment?.trim() || null,
+        utmSource: utmSource || null,
+      });
 
-    prisma.user
-      .findMany({
+      const managers = await prisma.user.findMany({
         where: {
           telegramChatId: { not: null },
           role: { in: ["ADMIN", "SENIOR_MANAGER", "MANAGER"] },
         },
         select: { telegramChatId: true },
-      })
-      .then((users) => {
-        for (const u of users) {
-          if (u.telegramChatId) {
-            sendTelegramMessage(u.telegramChatId, notifText);
-          }
-        }
-      })
-      .catch((err) => console.error("Telegram notify error:", err));
+      });
+
+      await Promise.all(
+        managers
+          .filter((u) => u.telegramChatId)
+          .map((u) => sendTelegramMessage(u.telegramChatId!, notifText))
+      );
+    } catch (err) {
+      console.error("Telegram notify error:", err);
+    }
 
     return NextResponse.json({ success: true, applicationId: application.id });
   } catch (error) {
