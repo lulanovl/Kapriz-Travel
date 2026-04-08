@@ -1,6 +1,4 @@
 import Header from "@/components/admin/Header";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +25,6 @@ export default async function CalendarPage() {
       _count: { select: { applications: true } },
     },
   });
-
-  const canManage = ["ADMIN", "SENIOR_MANAGER"].includes(session?.user.role ?? "");
 
   return (
     <>
