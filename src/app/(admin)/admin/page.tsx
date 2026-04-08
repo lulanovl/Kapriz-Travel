@@ -10,6 +10,10 @@ const STATUS_COLORS: Record<string, string> = {
   CONTACT: "bg-yellow-100 text-yellow-700",
   PROPOSAL: "bg-purple-100 text-purple-700",
   DEPOSIT: "bg-orange-100 text-orange-700",
+  NO_SHOW: "bg-red-100 text-red-700",
+  ON_TOUR: "bg-green-100 text-green-700",
+  FEEDBACK: "bg-teal-100 text-teal-700",
+  ARCHIVE: "bg-gray-100 text-gray-500",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -17,6 +21,10 @@ const STATUS_LABELS: Record<string, string> = {
   CONTACT: "Контакт",
   PROPOSAL: "КП",
   DEPOSIT: "Предоплата",
+  NO_SHOW: "Не явился",
+  ON_TOUR: "В туре",
+  FEEDBACK: "Отзыв",
+  ARCHIVE: "Архив",
 };
 
 export default async function DashboardPage() {
@@ -163,7 +171,6 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-xs text-gray-500">{stat.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
             </div>
           </Link>
         ))}

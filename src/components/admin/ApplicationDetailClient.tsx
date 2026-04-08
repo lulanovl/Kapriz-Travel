@@ -120,9 +120,13 @@ export default function ApplicationDetailClient({
   const phone = data.client.whatsapp.replace(/\D/g, "");
   const balance = finalPrice - depositPaid;
 
+  const [saveError, setSaveError] = useState("");
+  const [bookingError, setBookingError] = useState("");
+
   const saveApplication = async () => {
     setSaving(true);
-    await fetch(`/api/admin/applications/${data.id}`, {
+    setSaveError("");
+    const res = await fetch(`/api/admin/applications/${data.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -132,13 +136,19 @@ export default function ApplicationDetailClient({
       }),
     });
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (res.ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } else {
+      const d = await res.json().catch(() => ({}));
+      setSaveError(d.error ?? "Ошибка сохранения");
+    }
   };
 
   const saveBooking = async () => {
     setBookingSaving(true);
-    await fetch(`/api/admin/applications/${data.id}/booking`, {
+    setBookingError("");
+    const res = await fetch(`/api/admin/applications/${data.id}/booking`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -151,6 +161,10 @@ export default function ApplicationDetailClient({
       }),
     });
     setBookingSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setBookingError(d.error ?? "Ошибка сохранения");
+    }
   };
 
   return (
@@ -246,6 +260,9 @@ export default function ApplicationDetailClient({
               {saving ? "Сохраняю..." : saved ? "✓ Сохранено" : "Сохранить"}
             </button>
           </div>
+          {saveError && (
+            <p className="mt-2 text-xs text-red-600">{saveError}</p>
+          )}
         </div>
 
         {/* Financials */}
@@ -360,6 +377,9 @@ export default function ApplicationDetailClient({
           >
             {bookingSaving ? "Сохраняю..." : "Сохранить финансы"}
           </button>
+          {bookingError && (
+            <p className="mt-2 text-xs text-red-600">{bookingError}</p>
+          )}
 
           {/* Price history */}
           {data.booking && data.booking.priceHistory.length > 0 && (
