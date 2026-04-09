@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ExpenseManager from "./ExpenseManager";
 
 interface TourDate {
   id: string;
@@ -346,6 +347,8 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                     </p>
                   </div>
                 )}
+
+                <ExpenseManager tourDateId={date.id} />
               </div>
             );
           })}
