@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import KanbanBoard from "@/components/admin/kanban/KanbanBoard";
 import type { KanbanApplication } from "@/components/admin/kanban/KanbanCard";
 
@@ -70,9 +71,12 @@ export default async function ApplicationsPage() {
             )}
           </p>
         </div>
-        <p className="text-xs text-gray-400">
-          Перетащите карточку для смены статуса
-        </p>
+        <Link
+          href="/admin/applications/new"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+        >
+          + Новая заявка
+        </Link>
       </div>
 
       <div className="flex-1 overflow-x-auto">

@@ -72,47 +72,48 @@ export default async function ToursPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Статус
                   </th>
-                  <th className="px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {tours.map((tour) => (
-                  <tr key={tour.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={tour.id} className="hover:bg-blue-50 cursor-pointer transition-colors group">
                     <td className="px-5 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{tour.title}</p>
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        <p className="font-medium text-gray-900 group-hover:text-blue-700">{tour.title}</p>
                         <p className="text-xs text-gray-400 font-mono">{tour.slug}</p>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-5 py-4 text-gray-600">
-                      {TOUR_TYPE_LABELS[tour.tourType ?? ""] ?? tour.tourType ?? "—"}
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        {TOUR_TYPE_LABELS[tour.tourType ?? ""] ?? tour.tourType ?? "—"}
+                      </Link>
                     </td>
                     <td className="px-5 py-4 text-gray-800 font-medium">
-                      {tour.basePrice.toLocaleString("ru-RU")} сом
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        {tour.basePrice.toLocaleString("ru-RU")} сом
+                      </Link>
                     </td>
                     <td className="px-5 py-4 text-gray-600">
-                      {tour._count.tourDates}
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        {tour._count.tourDates}
+                      </Link>
                     </td>
                     <td className="px-5 py-4 text-gray-600">
-                      {tour._count.applications}
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        {tour._count.applications}
+                      </Link>
                     </td>
                     <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          tour.isActive
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {tour.isActive ? "Активен" : "Неактивен"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/admin/tours/${tour.id}`}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                      >
-                        Открыть
+                      <Link href={`/admin/tours/${tour.id}`} className="block">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            tour.isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {tour.isActive ? "Активен" : "Неактивен"}
+                        </span>
                       </Link>
                     </td>
                   </tr>
