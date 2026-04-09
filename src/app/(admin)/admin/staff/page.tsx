@@ -10,10 +10,6 @@ interface StaffMember {
   phone: string | null;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  guide: "Гид",
-  driver: "Водитель",
-};
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);

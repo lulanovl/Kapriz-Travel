@@ -224,7 +224,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                 ))}
               </select>
               {guides.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1">Нет гидов. Добавьте сотрудников в разделе "Персонал".</p>
+                <p className="text-xs text-gray-400 mt-1">Нет гидов. Добавьте сотрудников в разделе &quot;Персонал&quot;.</p>
               )}
             </div>
             <div>
@@ -236,7 +236,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                 ))}
               </select>
               {drivers.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1">Нет водителей. Добавьте сотрудников в разделе "Персонал".</p>
+                <p className="text-xs text-gray-400 mt-1">Нет водителей. Добавьте сотрудников в разделе &quot;Персонал&quot;.</p>
               )}
             </div>
           </div>
