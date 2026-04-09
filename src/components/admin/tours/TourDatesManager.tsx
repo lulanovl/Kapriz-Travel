@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface TourDate {
   id: string;
@@ -10,6 +10,13 @@ interface TourDate {
   guide?: { id: string; name: string } | null;
   driver?: { id: string; name: string } | null;
   _count: { applications: number };
+}
+
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  phone: string | null;
 }
 
 interface Props {
@@ -43,11 +50,23 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
 
-  // Guide token state: dateId → { token, expiresAt, copied, generating }
+  // Guide token state
   const [guideTokens, setGuideTokens] = useState<
     Record<string, { token: string; expiresAt: string; copied: boolean; generating: boolean }>
   >({});
+
+  // Load staff on mount
+  useEffect(() => {
+    fetch("/api/admin/staff")
+      .then((r) => r.json())
+      .then((data) => setStaff(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const guides = staff.filter((s) => s.role === "guide");
+  const drivers = staff.filter((s) => s.role === "driver");
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -114,7 +133,6 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
       ...prev,
       [dateId]: { ...prev[dateId], token: prev[dateId]?.token ?? "", expiresAt: "", copied: false, generating: true },
     }));
-
     try {
       const res = await fetch(`/api/admin/tour-dates/${dateId}/guide-token`, {
         method: "POST",
@@ -143,10 +161,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
     navigator.clipboard.writeText(url);
     setGuideTokens((prev) => ({ ...prev, [dateId]: { ...tokenData, copied: true } }));
     setTimeout(() => {
-      setGuideTokens((prev) => ({
-        ...prev,
-        [dateId]: { ...prev[dateId], copied: false },
-      }));
+      setGuideTokens((prev) => ({ ...prev, [dateId]: { ...prev[dateId], copied: false } }));
     }, 2500);
   }
 
@@ -163,6 +178,8 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
     if (free <= 3) return `Осталось ${free}`;
     return `${free} мест`;
   }
+
+  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
     <div>
@@ -184,38 +201,43 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Дата начала
-              </label>
-              <input
-                type="date"
-                value={form.startDate}
-                onChange={(e) => set("startDate", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Дата начала</label>
+              <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Дата окончания
-              </label>
-              <input
-                type="date"
-                value={form.endDate}
-                onChange={(e) => set("endDate", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Дата окончания</label>
+              <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Макс. мест
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={form.maxSeats}
-                onChange={(e) => set("maxSeats", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Макс. мест</label>
+              <input type="number" min="1" value={form.maxSeats} onChange={(e) => set("maxSeats", e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              {/* placeholder col */}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Гид</label>
+              <select value={form.guideId} onChange={(e) => set("guideId", e.target.value)} className={inputClass}>
+                <option value="">— Не назначен —</option>
+                {guides.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}{g.phone ? ` (${g.phone})` : ""}</option>
+                ))}
+              </select>
+              {guides.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">Нет гидов. Добавьте сотрудников в разделе "Персонал".</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Водитель</label>
+              <select value={form.driverId} onChange={(e) => set("driverId", e.target.value)} className={inputClass}>
+                <option value="">— Не назначен —</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}{d.phone ? ` (${d.phone})` : ""}</option>
+                ))}
+              </select>
+              {drivers.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">Нет водителей. Добавьте сотрудников в разделе "Персонал".</p>
+              )}
             </div>
           </div>
           <div className="flex gap-2 mt-4">
@@ -226,10 +248,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
             >
               {loading ? "Сохраняем..." : "Сохранить"}
             </button>
-            <button
-              onClick={cancelForm}
-              className="px-4 py-2 rounded-lg text-sm text-gray-600 border border-gray-300 hover:bg-gray-50"
-            >
+            <button onClick={cancelForm} className="px-4 py-2 rounded-lg text-sm text-gray-600 border border-gray-300 hover:bg-gray-50">
               Отмена
             </button>
           </div>
@@ -253,9 +272,17 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                       <p className="text-sm font-medium text-gray-800">
                         {formatDate(date.startDate)} — {formatDate(date.endDate)}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {date._count.applications}/{date.maxSeats} участников
-                      </p>
+                      <div className="flex gap-3 mt-0.5">
+                        <p className="text-xs text-gray-400">
+                          {date._count.applications}/{date.maxSeats} участников
+                        </p>
+                        {date.guide && (
+                          <p className="text-xs text-blue-500">Гид: {date.guide.name}</p>
+                        )}
+                        {date.driver && (
+                          <p className="text-xs text-green-500">Водитель: {date.driver.name}</p>
+                        )}
+                      </div>
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${availabilityColor(date)}`}>
                       {availabilityLabel(date)}
@@ -263,7 +290,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                   </div>
 
                   <div className="flex gap-2">
-                    {/* Guide token button */}
+                    {/* Guide token */}
                     {!tokenData?.token ? (
                       <button
                         onClick={() => generateGuideToken(date.id)}
@@ -277,11 +304,8 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                       <button
                         onClick={() => copyGuideLink(date.id)}
                         className={`text-sm px-3 py-1 rounded-lg transition-colors font-medium ${
-                          tokenData.copied
-                            ? "text-green-700 bg-green-50"
-                            : "text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                          tokenData.copied ? "text-green-700 bg-green-50" : "text-purple-600 hover:text-purple-800 hover:bg-purple-50"
                         }`}
-                        title="Скопировать ссылку"
                       >
                         {tokenData.copied ? "✓ Скопировано" : "📋 Скопировать ссылку"}
                       </button>
@@ -291,16 +315,12 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                         onClick={() => generateGuideToken(date.id)}
                         disabled={tokenData.generating}
                         className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100"
-                        title="Обновить ссылку (старая перестанет работать)"
+                        title="Обновить ссылку"
                       >
                         ↺
                       </button>
                     )}
-
-                    <button
-                      onClick={() => startEdit(date)}
-                      className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                    >
+                    <button onClick={() => startEdit(date)} className="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors">
                       Изменить
                     </button>
                     <button
@@ -314,17 +334,12 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
                   </div>
                 </div>
 
-                {/* Guide link info */}
                 {tokenData?.token && (
                   <div className="mt-2 pt-2 border-t border-gray-100">
                     <p className="text-xs text-gray-500">
                       <span className="font-medium text-purple-600">Ссылка гиду</span>
                       {" · "}действует до{" "}
-                      {new Date(tokenData.expiresAt).toLocaleDateString("ru", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {new Date(tokenData.expiresAt).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" })}
                     </p>
                     <p className="text-xs text-gray-400 font-mono truncate mt-0.5">
                       {window?.location?.origin}/guide/{tokenData.token}

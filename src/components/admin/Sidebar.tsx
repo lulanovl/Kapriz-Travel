@@ -15,6 +15,7 @@ const navItems = [
 ];
 
 const adminOnlyItems = [
+  { href: "/admin/staff", label: "Персонал", icon: "🧑‍💼" },
   { href: "/admin/users", label: "Пользователи", icon: "⚙️" },
 ];
 
