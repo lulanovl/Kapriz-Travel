@@ -22,7 +22,7 @@ const COLUMNS: { id: string; label: string; color: string; headerColor: string }
   { id: "CONTACT", label: "Контакт", color: "bg-yellow-50 border-yellow-200", headerColor: "text-yellow-700" },
   { id: "PROPOSAL", label: "КП", color: "bg-purple-50 border-purple-200", headerColor: "text-purple-700" },
   { id: "DEPOSIT", label: "Предоплата", color: "bg-orange-50 border-orange-200", headerColor: "text-orange-700" },
-  { id: "IN_BUS", label: "В автобусе", color: "bg-indigo-50 border-indigo-200", headerColor: "text-indigo-700" },
+  { id: "IN_BUS", label: "Распределение", color: "bg-indigo-50 border-indigo-200", headerColor: "text-indigo-700" },
   { id: "NO_SHOW", label: "Не явился", color: "bg-red-50 border-red-200", headerColor: "text-red-700" },
   { id: "ON_TOUR", label: "В туре", color: "bg-green-50 border-green-200", headerColor: "text-green-700" },
   { id: "FEEDBACK", label: "Отзыв", color: "bg-teal-50 border-teal-200", headerColor: "text-teal-700" },

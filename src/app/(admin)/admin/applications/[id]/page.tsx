@@ -12,7 +12,7 @@ const STATUS_LABELS: Record<string, string> = {
   CONTACT: "Контакт",
   PROPOSAL: "КП",
   DEPOSIT: "Предоплата",
-  IN_BUS: "В автобусе",
+  IN_BUS: "Распределение",
   NO_SHOW: "Не явился",
   ON_TOUR: "В туре",
   FEEDBACK: "Отзыв",

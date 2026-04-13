@@ -42,17 +42,24 @@ export async function PATCH(
     data: { guidePaymentStatus: status },
   });
 
-  // If guide marks NO_SHOW, update application status too
+  // Sync application status based on guide payment status
   if (status === "NO_SHOW") {
+    // Tourist didn't show up
     await prisma.application.update({
       where: { id: applicationId },
       data: { status: "NO_SHOW" },
     });
-  } else if (application.status === "NO_SHOW" && status !== "NO_SHOW") {
-    // If guide un-marks NO_SHOW, revert to ON_TOUR
+  } else if (status === "PAID") {
+    // Tourist showed up and paid — move to ON_TOUR
     await prisma.application.update({
       where: { id: applicationId },
       data: { status: "ON_TOUR" },
+    });
+  } else if (application.status === "NO_SHOW") {
+    // Guide un-marked NO_SHOW (set to PENDING or TRANSFERRED) — revert to IN_BUS
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: { status: "IN_BUS" },
     });
   }
 

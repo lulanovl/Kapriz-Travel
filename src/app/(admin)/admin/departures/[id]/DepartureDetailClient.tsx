@@ -48,7 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новая", CONTACT: "Контакт", PROPOSAL: "КП", DEPOSIT: "Предоплата",
-  IN_BUS: "В автобусе", NO_SHOW: "Не явился", ON_TOUR: "В туре",
+  IN_BUS: "Распределение", NO_SHOW: "Не явился", ON_TOUR: "В туре",
   FEEDBACK: "Отзыв", ARCHIVE: "Архив",
 };
 
