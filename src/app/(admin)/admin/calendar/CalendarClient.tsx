@@ -7,7 +7,7 @@ type TourDate = {
   startDate: string;
   endDate: string;
   maxSeats: number;
-  tour: { title: string };
+  tour: { id: string; title: string };
   guide: { name: string } | null;
   driver: { name: string } | null;
   applicationsCount: number;
@@ -67,26 +67,47 @@ function TourCard({ td, compact = false }: { td: TourDate; compact?: boolean }) 
     (isSameDay(start, end) ? "" : " — " + end.toLocaleDateString("ru", { day: "numeric", month: "short" }));
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-      <p className="font-semibold text-gray-900 text-sm leading-tight">{td.tour.title}</p>
+    <a
+      href={`/admin/tours/${td.tour.id}`}
+      className="block bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+    >
+      {/* Title */}
+      <p className="font-semibold text-gray-900 text-xs leading-snug mb-1 line-clamp-2">
+        {td.tour.title}
+      </p>
+
+      {/* Date (only in day view) */}
       {!compact && (
-        <p className="text-xs text-gray-400 mt-0.5">{dateStr}</p>
+        <p className="text-xs text-gray-400 mb-1.5">{dateStr}</p>
       )}
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex gap-3 text-xs text-gray-400">
-          {td.guide && <span>Гид: {td.guide.name}</span>}
-          {td.driver && <span>Водитель: {td.driver.name}</span>}
-          {!td.guide && !td.driver && <span className="text-gray-300">Нет команды</span>}
+
+      {/* Seats */}
+      <div className={`text-xs font-semibold ${freeColor} mb-1`}>
+        {td.applicationsCount}/{td.maxSeats} чел.
+        {free <= 0 ? " · полный" : ` · св. ${free}`}
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+        <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      </div>
+
+      {/* Staff */}
+      {(td.guide || td.driver) && (
+        <div className="space-y-0.5">
+          {td.guide && (
+            <p className="text-xs text-gray-400 truncate">
+              <span className="text-gray-300">Гид: </span>{td.guide.name}
+            </p>
+          )}
+          {td.driver && (
+            <p className="text-xs text-gray-400 truncate">
+              <span className="text-gray-300">Вод: </span>{td.driver.name}
+            </p>
+          )}
         </div>
-        <span className={`text-xs font-medium ${freeColor}`}>
-          {td.applicationsCount}/{td.maxSeats}
-          {free <= 0 ? " • полный" : ` • св. ${free}`}
-        </span>
-      </div>
-      <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${barColor} rounded-full`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+      )}
+    </a>
   );
 }
 

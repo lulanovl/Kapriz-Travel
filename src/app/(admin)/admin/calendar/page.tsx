@@ -16,7 +16,7 @@ export default async function CalendarPage() {
     where: { startDate: { gte: from, lte: to } },
     orderBy: { startDate: "asc" },
     include: {
-      tour: { select: { title: true } },
+      tour: { select: { id: true, title: true } },
       guide: { select: { name: true } },
       driver: { select: { name: true } },
       _count: { select: { applications: true } },
