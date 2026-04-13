@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
@@ -85,6 +86,7 @@ export default function KanbanBoard({
 }: {
   initialApplications: KanbanApplication[];
 }) {
+  const router = useRouter();
   const [applications, setApplications] =
     useState<KanbanApplication[]>(initialApplications);
   const [activeApp, setActiveApp] = useState<KanbanApplication | null>(null);
@@ -148,6 +150,7 @@ export default function KanbanBoard({
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error("failed");
+      router.refresh();
     } catch {
       // Revert optimistic update
       setApplications((prev) =>

@@ -155,6 +155,7 @@ export default function ApplicationDetailClient({
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
       setSaveError(d.error ?? "Ошибка сохранения");
@@ -171,6 +172,7 @@ export default function ApplicationDetailClient({
     setActionLoading(false);
     if (res.ok) {
       setStatus("CONTACT");
+      router.refresh();
     }
   };
 
@@ -205,7 +207,9 @@ export default function ApplicationDetailClient({
       }),
     });
     setBookingSaving(false);
-    if (!res.ok) {
+    if (res.ok) {
+      router.refresh();
+    } else {
       const d = await res.json().catch(() => ({}));
       setBookingError(d.error ?? "Ошибка сохранения");
     }
