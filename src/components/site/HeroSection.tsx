@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -12,16 +13,23 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-blue-gradient">
-      {/* Animated background blobs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-brand-lime/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-white/5 blur-[100px]" />
-      </div>
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      {/* Background photo */}
+      <Image
+        src="/images/hero-bg.jpg"
+        alt="Горы Кыргызстана"
+        fill
+        priority
+        className="object-cover object-center"
+        sizes="100vw"
+      />
 
-      {/* Grid overlay */}
+      {/* Dark gradient overlay so text stays readable */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/20" />
+
+      {/* Subtle grid overlay */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage:
             "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
