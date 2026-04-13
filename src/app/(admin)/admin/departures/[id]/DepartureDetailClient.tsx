@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 interface Client { id: string; name: string; whatsapp: string; country: string | null }
@@ -128,6 +128,10 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", guideId: "", driverId: "", maxSeats: "15" });
   const [editLoading, setEditLoading] = useState(false);
+
+  // Guide link toast
+  const [guideToast, setGuideToast] = useState<{ url: string; expiresAt: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Expenses state
   const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>(
@@ -290,7 +294,9 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
       const data = await res.json();
       const url = `${window.location.origin}/guide/${data.token}`;
       await navigator.clipboard.writeText(url);
-      alert(`Ссылка скопирована!\n${url}\n\nДействует до: ${new Date(data.expiresAt).toLocaleDateString("ru-RU")}`);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setGuideToast({ url, expiresAt: data.expiresAt });
+      toastTimer.current = setTimeout(() => setGuideToast(null), 8000);
     }
   }
 
@@ -326,12 +332,64 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
     }
   }
 
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
   const depDate = new Date(departure.departureDate).toLocaleDateString("ru-RU", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
   return (
     <div className="space-y-6">
+
+      {/* Guide link toast */}
+      {guideToast && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 bg-white rounded-2xl border border-purple-200 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4">
+          <div className="bg-purple-600 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-semibold text-white">Ссылка скопирована!</span>
+            </div>
+            <button
+              onClick={() => { setGuideToast(null); if (toastTimer.current) clearTimeout(toastTimer.current); }}
+              className="text-purple-200 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-4 py-4 space-y-3">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Ссылка для гида</p>
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                <span className="text-xs text-gray-700 truncate flex-1 font-mono">{guideToast.url}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(guideToast.url)}
+                  className="shrink-0 text-purple-500 hover:text-purple-700 transition-colors"
+                  title="Скопировать ещё раз"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <span>Действует до: <span className="font-medium text-gray-600">{new Date(guideToast.expiresAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span></span>
+              <a
+                href={guideToast.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-500 hover:text-purple-700 font-medium hover:underline"
+              >
+                Открыть →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
