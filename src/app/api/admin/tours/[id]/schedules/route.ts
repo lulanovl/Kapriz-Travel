@@ -52,5 +52,43 @@ export async function POST(
     },
   });
 
+  // Auto-generate departures (all CLOSED — managers activate individually)
+  const departureDates: Date[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (type === "WEEKLY") {
+    const end = new Date(today);
+    end.setDate(end.getDate() + 60);
+    const cur = new Date(today);
+    while (cur <= end) {
+      if ((daysOfWeek as number[]).includes(cur.getDay())) {
+        departureDates.push(new Date(cur));
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else if (type === "DATE_RANGE" && rangeStart && rangeEnd) {
+    const start = new Date(rangeStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(rangeEnd);
+    end.setHours(0, 0, 0, 0);
+    const cur = new Date(start);
+    while (cur <= end) {
+      departureDates.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  if (departureDates.length > 0) {
+    await prisma.departure.createMany({
+      data: departureDates.map((d) => ({
+        tourId: params.id,
+        departureDate: d,
+        status: "CLOSED",
+      })),
+      skipDuplicates: true,
+    });
+  }
+
   return NextResponse.json(schedule, { status: 201 });
 }

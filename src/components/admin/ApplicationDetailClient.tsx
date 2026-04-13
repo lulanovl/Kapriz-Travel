@@ -107,81 +107,28 @@ export default function ApplicationDetailClient({
   const [managerId, setManagerId] = useState(data.manager?.id ?? "");
   const [comment, setComment] = useState(data.comment ?? "");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Auto-calculate base price * persons when no booking exists
   const defaultFinalPrice = data.booking?.finalPrice ?? data.tour.basePrice * data.persons;
-
   const [finalPrice, setFinalPrice] = useState(defaultFinalPrice);
-  const [priceReason, setPriceReason] = useState(
-    data.booking?.priceChangeReason ?? ""
-  );
+  const [priceReason, setPriceReason] = useState(data.booking?.priceChangeReason ?? "");
   const [depositPaid, setDepositPaid] = useState(data.booking?.depositPaid ?? 0);
   const [depositDate, setDepositDate] = useState(
     data.booking?.depositDate
       ? new Date(data.booking.depositDate).toISOString().slice(0, 10)
       : ""
   );
-  const [paymentStatus, setPaymentStatus] = useState(
-    data.booking?.paymentStatus ?? "PENDING"
-  );
+  const [paymentStatus, setPaymentStatus] = useState(data.booking?.paymentStatus ?? "PENDING");
   const [currency, setCurrency] = useState(data.booking?.currency ?? "KGS");
-  const [bookingSaving, setBookingSaving] = useState(false);
+
+  const [departureId, setDepartureId] = useState(data.departure?.id ?? "");
 
   const currentStatus = STATUSES.find((s) => s.id === status);
   const phone = data.client.whatsapp.replace(/\D/g, "");
   const balance = finalPrice - depositPaid;
   const calculatedPrice = data.tour.basePrice * data.persons;
   const priceMatchesCalc = Math.abs(finalPrice - calculatedPrice) < 1;
-
-  const [departureId, setDepartureId] = useState(data.departure?.id ?? "");
-  const [departureSaving, setDepartureSaving] = useState(false);
-  const [departureSaved, setDepartureSaved] = useState(false);
-
-  const saveDeparture = async () => {
-    setDepartureSaving(true);
-    const res = await fetch(`/api/admin/applications/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ departureId: departureId || null }),
-    });
-    setDepartureSaving(false);
-    if (res.ok) {
-      setDepartureSaved(true);
-      setTimeout(() => setDepartureSaved(false), 2000);
-      router.refresh();
-    }
-  };
-
-  const [saveError, setSaveError] = useState("");
-  const [bookingError, setBookingError] = useState("");
-
-  const saveApplication = async (overrides?: { status?: string }) => {
-    setSaving(true);
-    setSaveError("");
-    const res = await fetch(`/api/admin/applications/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: overrides?.status ?? status,
-        managerId: managerId || null,
-        comment,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      if (overrides?.status) {
-        setStatus(overrides.status);
-      }
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-      router.refresh();
-    } else {
-      const d = await res.json().catch(() => ({}));
-      setSaveError(d.error ?? "Ошибка сохранения");
-    }
-  };
 
   const handleConfirm = async () => {
     setActionLoading(true);
@@ -207,32 +154,53 @@ export default function ApplicationDetailClient({
     });
     setActionLoading(false);
     if (res.ok) {
-      setStatus("ARCHIVE");
       router.push("/admin/applications");
     }
   };
 
-  const saveBooking = async () => {
-    setBookingSaving(true);
-    setBookingError("");
-    const res = await fetch(`/api/admin/applications/${data.id}/booking`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        finalPrice,
-        priceChangeReason: priceReason || null,
-        depositPaid,
-        depositDate: depositDate || null,
-        paymentStatus,
-        currency,
-      }),
-    });
-    setBookingSaving(false);
-    if (res.ok) {
-      router.refresh();
-    } else {
-      const d = await res.json().catch(() => ({}));
-      setBookingError(d.error ?? "Ошибка сохранения");
+  const handleSaveAndExit = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const [appRes, bookingRes] = await Promise.all([
+        fetch(`/api/admin/applications/${data.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            managerId: managerId || null,
+            comment,
+            departureId: departureId || null,
+          }),
+        }),
+        fetch(`/api/admin/applications/${data.id}/booking`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            finalPrice,
+            priceChangeReason: priceReason || null,
+            depositPaid,
+            depositDate: depositDate || null,
+            paymentStatus,
+            currency,
+          }),
+        }),
+      ]);
+
+      if (!appRes.ok) {
+        const d = await appRes.json().catch(() => ({}));
+        setSaveError(d.error ?? "Ошибка сохранения заявки");
+        return;
+      }
+      if (!bookingRes.ok) {
+        const d = await bookingRes.json().catch(() => ({}));
+        setSaveError(d.error ?? "Ошибка сохранения финансов");
+        return;
+      }
+
+      router.back();
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -360,28 +328,16 @@ export default function ApplicationDetailClient({
                 minute: "2-digit",
               })}
             </span>
-            <div className="flex items-center gap-2">
-              {status !== "NEW" && (
-                <button
-                  onClick={handleReject}
-                  disabled={actionLoading || status === "ARCHIVE"}
-                  className="px-3 py-2 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-50 disabled:opacity-40 transition-colors"
-                >
-                  Клиент отказался
-                </button>
-              )}
+            {status !== "NEW" && (
               <button
-                onClick={() => saveApplication()}
-                disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                onClick={handleReject}
+                disabled={actionLoading || status === "ARCHIVE"}
+                className="px-3 py-2 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-medium hover:bg-red-50 disabled:opacity-40 transition-colors"
               >
-                {saving ? "Сохраняю..." : saved ? "Сохранено" : "Сохранить"}
+                Клиент отказался
               </button>
-            </div>
+            )}
           </div>
-          {saveError && (
-            <p className="mt-2 text-xs text-red-600">{saveError}</p>
-          )}
         </div>
 
         {/* Financials */}
@@ -501,7 +457,7 @@ export default function ApplicationDetailClient({
           </div>
 
           {/* Balance summary */}
-          <div className="bg-gray-50 rounded-lg p-3 mb-4 flex items-center justify-between">
+          <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
             <span className="text-sm text-gray-600">Остаток к оплате:</span>
             <span
               className={`text-lg font-bold ${
@@ -513,23 +469,12 @@ export default function ApplicationDetailClient({
           </div>
 
           {status === "NO_SHOW" && depositPaid > 0 && (
-            <div className="bg-red-50 rounded-lg p-3 mb-4 flex items-center justify-between">
+            <div className="bg-red-50 rounded-lg p-3 mt-3 flex items-center justify-between">
               <span className="text-sm text-red-700">Удержанная предоплата:</span>
               <span className="text-base font-bold text-red-700">
                 {depositPaid.toLocaleString()} {currency}
               </span>
             </div>
-          )}
-
-          <button
-            onClick={saveBooking}
-            disabled={bookingSaving}
-            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
-          >
-            {bookingSaving ? "Сохраняю..." : "Сохранить финансы"}
-          </button>
-          {bookingError && (
-            <p className="mt-2 text-xs text-red-600">{bookingError}</p>
           )}
 
           {/* Price history */}
@@ -592,6 +537,21 @@ export default function ApplicationDetailClient({
             </div>
           </div>
         )}
+
+        {/* Unified save button */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between gap-3">
+          {saveError && (
+            <p className="text-sm text-red-600">{saveError}</p>
+          )}
+          {!saveError && <span />}
+          <button
+            onClick={handleSaveAndExit}
+            disabled={saving}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {saving ? "Сохраняю..." : "Сохранить и выйти"}
+          </button>
+        </div>
       </div>
 
       {/* RIGHT column */}
@@ -676,32 +636,23 @@ export default function ApplicationDetailClient({
               <label className="block text-xs font-medium text-gray-500 mb-1">
                 Дата выезда
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={departureId}
-                  onChange={(e) => setDepartureId(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">— Не выбрана —</option>
-                  {data.tourDepartures.map((dep) => (
-                    <option key={dep.id} value={dep.id}>
-                      {new Date(dep.departureDate).toLocaleDateString("ru", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={saveDeparture}
-                  disabled={departureSaving}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors shrink-0"
-                >
-                  {departureSaving ? "..." : departureSaved ? "✓" : "Сохранить"}
-                </button>
-              </div>
+              <select
+                value={departureId}
+                onChange={(e) => setDepartureId(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— Не выбрана —</option>
+                {data.tourDepartures.map((dep) => (
+                  <option key={dep.id} value={dep.id}>
+                    {new Date(dep.departureDate).toLocaleDateString("ru", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </option>
+                ))}
+              </select>
               {data.group && (
                 <p className="text-xs text-blue-500 mt-1">
                   Группа: {data.group.name}

@@ -30,6 +30,10 @@ export default async function DeparturePage({ params }: { params: { id: string }
             orderBy: { createdAt: "asc" },
           },
           _count: { select: { applications: true } },
+          expenses: {
+            select: { id: true, category: true, amount: true, currency: true, note: true },
+            orderBy: { createdAt: "asc" },
+          },
         },
         orderBy: { createdAt: "asc" },
       },

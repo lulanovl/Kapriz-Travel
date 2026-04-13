@@ -10,12 +10,16 @@ interface Application {
   client: Client; booking: Booking | null;
   manager?: { id: string; name: string } | null;
 }
+interface Expense {
+  id: string; category: string; amount: number; currency: string; note: string | null;
+}
 interface Group {
   id: string; name: string; maxSeats: number;
   guide: { id: string; name: string; phone: string | null } | null;
   driver: { id: string; name: string; phone: string | null } | null;
   applications: Application[];
   _count: { applications: number };
+  expenses: Expense[];
 }
 interface Departure {
   id: string; departureDate: string; status: string; note: string | null;
@@ -45,6 +49,8 @@ const STATUS_LABELS: Record<string, string> = {
   NEW: "Новая", CONTACT: "Контакт", PROPOSAL: "КП", DEPOSIT: "Предоплата",
   NO_SHOW: "Не явился", ON_TOUR: "В туре", FEEDBACK: "Отзыв", ARCHIVE: "Архив",
 };
+
+const EXPENSE_CURRENCIES = ["KGS", "USD", "EUR"];
 
 function WaLink({ phone }: { phone: string }) {
   const clean = phone.replace(/\D/g, "");
@@ -100,6 +106,8 @@ function AppCard({ app, selected, onSelect, canEdit }: {
   );
 }
 
+type ExpenseForm = { category: string; amount: string; currency: string; note: string };
+
 export default function DepartureDetailClient({ departure, staff, canEdit }: Props) {
   const guides = staff.filter((s) => s.role === "guide");
   const drivers = staff.filter((s) => s.role === "driver");
@@ -117,6 +125,16 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", guideId: "", driverId: "", maxSeats: "15" });
   const [editLoading, setEditLoading] = useState(false);
+
+  // Expenses state
+  const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>(
+    () => Object.fromEntries(departure.groups.map((g) => [g.id, g.expenses]))
+  );
+  const [expenseForms, setExpenseForms] = useState<Record<string, ExpenseForm>>(
+    () => Object.fromEntries(departure.groups.map((g) => [g.id, { category: "", amount: "", currency: "KGS", note: "" }]))
+  );
+  const [expenseLoading, setExpenseLoading] = useState<Record<string, boolean>>({});
+  const [expenseVisible, setExpenseVisible] = useState<Record<string, boolean>>({});
 
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
@@ -160,7 +178,9 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
     setCreateLoading(false);
     if (res.ok) {
       const created = await res.json();
-      setGroups((prev) => [...prev, { ...created, applications: [] }]);
+      setGroups((prev) => [...prev, { ...created, applications: [], expenses: [] }]);
+      setGroupExpenses((prev) => ({ ...prev, [created.id]: [] }));
+      setExpenseForms((prev) => ({ ...prev, [created.id]: { category: "", amount: "", currency: "KGS", note: "" } }));
       setGroupForm({ name: "", guideId: "", driverId: "", maxSeats: "15" });
       setShowCreateGroup(false);
     }
@@ -219,6 +239,8 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
       const freed = group.applications;
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
       setUnassigned((prev) => [...prev, ...freed]);
+      setGroupExpenses((prev) => { const n = { ...prev }; delete n[groupId]; return n; });
+      setExpenseForms((prev) => { const n = { ...prev }; delete n[groupId]; return n; });
     }
   }
 
@@ -266,6 +288,38 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
       const url = `${window.location.origin}/guide/${data.token}`;
       await navigator.clipboard.writeText(url);
       alert(`Ссылка скопирована!\n${url}\n\nДействует до: ${new Date(data.expiresAt).toLocaleDateString("ru-RU")}`);
+    }
+  }
+
+  async function handleAddExpense(groupId: string) {
+    const form = expenseForms[groupId];
+    if (!form?.category || !form?.amount) return;
+    setExpenseLoading((prev) => ({ ...prev, [groupId]: true }));
+    const res = await fetch(`/api/admin/groups/${groupId}/expenses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: form.category,
+        amount: parseFloat(form.amount),
+        currency: form.currency || "KGS",
+        note: form.note || null,
+      }),
+    });
+    setExpenseLoading((prev) => ({ ...prev, [groupId]: false }));
+    if (res.ok) {
+      const created = await res.json();
+      setGroupExpenses((prev) => ({ ...prev, [groupId]: [...(prev[groupId] ?? []), created] }));
+      setExpenseForms((prev) => ({ ...prev, [groupId]: { category: "", amount: "", currency: "KGS", note: "" } }));
+    }
+  }
+
+  async function handleDeleteExpense(groupId: string, expenseId: string) {
+    const res = await fetch(`/api/admin/expenses/${expenseId}`, { method: "DELETE" });
+    if (res.ok) {
+      setGroupExpenses((prev) => ({
+        ...prev,
+        [groupId]: (prev[groupId] ?? []).filter((e) => e.id !== expenseId),
+      }));
     }
   }
 
@@ -435,6 +489,11 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
               const groupPersons = group.applications.reduce((s, a) => s + a.persons, 0);
               const fillRatio = group.maxSeats > 0 ? groupPersons / group.maxSeats : 0;
               const fillColor = fillRatio >= 1 ? "bg-red-500" : fillRatio >= 0.8 ? "bg-yellow-500" : "bg-green-500";
+              const expenses = groupExpenses[group.id] ?? [];
+              const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+              const showExpenses = expenseVisible[group.id] ?? false;
+              const expForm = expenseForms[group.id] ?? { category: "", amount: "", currency: "KGS", note: "" };
+              const isExpLoading = expenseLoading[group.id] ?? false;
 
               return (
                 <div key={group.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -596,6 +655,106 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                       ))}
                     </div>
                   )}
+
+                  {/* Expenses section */}
+                  <div className="border-t border-gray-100">
+                    <button
+                      onClick={() => setExpenseVisible((prev) => ({ ...prev, [group.id]: !showExpenses }))}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      <span>
+                        Расходы
+                        {expenses.length > 0 && (
+                          <span className="ml-2 text-orange-600 font-semibold">
+                            {totalExpenses.toLocaleString()} {expenses[0]?.currency ?? "KGS"}
+                          </span>
+                        )}
+                      </span>
+                      <svg className={`w-4 h-4 transition-transform ${showExpenses ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showExpenses && (
+                      <div className="px-4 pb-4">
+                        {/* Expense list */}
+                        {expenses.length > 0 && (
+                          <div className="mb-3 space-y-1.5">
+                            {expenses.map((exp) => (
+                              <div key={exp.id} className="flex items-center justify-between py-1.5 px-3 bg-gray-50 rounded-lg text-xs">
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium text-gray-800">{exp.category}</span>
+                                  {exp.note && <span className="text-gray-400 ml-1.5">({exp.note})</span>}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                  <span className="font-semibold text-gray-900">
+                                    {exp.amount.toLocaleString()} {exp.currency}
+                                  </span>
+                                  {canEdit && (
+                                    <button
+                                      onClick={() => handleDeleteExpense(group.id, exp.id)}
+                                      className="text-gray-300 hover:text-red-500 transition-colors"
+                                      title="Удалить"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            <div className="flex justify-between px-3 py-1 text-xs font-semibold text-gray-700 border-t border-gray-200 mt-1 pt-2">
+                              <span>Итого расходов:</span>
+                              <span className="text-orange-600">{totalExpenses.toLocaleString()} {expenses[0]?.currency ?? "KGS"}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Add expense form */}
+                        {canEdit && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Статья расхода"
+                              value={expForm.category}
+                              onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, category: e.target.value } }))}
+                              className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <div className="flex gap-1">
+                              <input
+                                type="number"
+                                placeholder="Сумма"
+                                value={expForm.amount}
+                                onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, amount: e.target.value } }))}
+                                onFocus={(e) => e.target.select()}
+                                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                              <select
+                                value={expForm.currency}
+                                onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, currency: e.target.value } }))}
+                                className="border border-gray-300 rounded-lg px-1.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              >
+                                {EXPENSE_CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+                              </select>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Примечание (необязательно)"
+                              value={expForm.note}
+                              onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, note: e.target.value } }))}
+                              className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <button
+                              onClick={() => handleAddExpense(group.id)}
+                              disabled={isExpLoading || !expForm.category || !expForm.amount}
+                              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                            >
+                              {isExpLoading ? "..." : "+ Добавить"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Schedule {
   id: string;
@@ -37,6 +38,7 @@ const emptyWeekly = { daysOfWeek: [] as number[], note: "" };
 const emptyRange = { rangeStart: "", rangeEnd: "", note: "" };
 
 export default function TourScheduleManager({ tourId, initialSchedules }: Props) {
+  const router = useRouter();
   const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules);
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<"WEEKLY" | "DATE_RANGE">("WEEKLY");
@@ -89,6 +91,7 @@ export default function TourScheduleManager({ tourId, initialSchedules }: Props)
       const created = await res.json();
       setSchedules((prev) => [...prev, created]);
       cancelForm();
+      router.refresh();
     } else {
       const data = await res.json();
       setError(data.error || "Ошибка сохранения");
