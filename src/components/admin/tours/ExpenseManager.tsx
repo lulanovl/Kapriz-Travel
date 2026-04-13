@@ -148,6 +148,7 @@ export default function ExpenseManager({ tourDateId }: Props) {
                   placeholder="Сумма"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  onFocus={(e) => e.target.select()}
                   className={`${inputClass} w-28`}
                 />
                 <select
