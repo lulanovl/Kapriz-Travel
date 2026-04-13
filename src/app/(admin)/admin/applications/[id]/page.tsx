@@ -58,12 +58,26 @@ export default async function ApplicationDetailPage({
     redirect("/admin/applications");
   }
 
-  // Get managers for assignment dropdown
-  const managers = await prisma.user.findMany({
-    where: { role: { in: ["ADMIN", "SENIOR_MANAGER", "MANAGER"] } },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  // Get managers and departures for dropdowns
+  const [managers, tourDepartures] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: { in: ["ADMIN", "SENIOR_MANAGER", "MANAGER"] } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.departure.findMany({
+      where: {
+        tourId: application.tourId,
+        OR: [
+          { status: "OPEN" },
+          // include current departure even if not OPEN
+          ...(application.departureId ? [{ id: application.departureId }] : []),
+        ],
+      },
+      orderBy: { departureDate: "asc" },
+      select: { id: true, departureDate: true, status: true },
+    }),
+  ]);
 
   // Serialize
   const data = {
@@ -126,6 +140,10 @@ export default async function ApplicationDetailPage({
       user: r.user,
     })),
     managers,
+    tourDepartures: tourDepartures.map((d) => ({
+      id: d.id,
+      departureDate: d.departureDate.toISOString(),
+    })),
     currentUserId: session.user.id,
     currentUserRole: session.user.role,
   };

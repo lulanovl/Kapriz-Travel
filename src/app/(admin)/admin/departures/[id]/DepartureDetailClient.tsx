@@ -120,7 +120,9 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
 
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-  const totalApplications = unassigned.length + groups.reduce((s, g) => s + g.applications.length, 0);
+  const unassignedPersons = unassigned.reduce((s, a) => s + a.persons, 0);
+  const totalPersons = unassignedPersons + groups.reduce((s, g) => s + g.applications.reduce((s2, a) => s2 + a.persons, 0), 0);
+  const selectedPersons = unassigned.filter((a) => selected.has(a.id)).reduce((s, a) => s + a.persons, 0);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -288,11 +290,11 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
           </div>
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{totalApplications}</p>
-              <p className="text-xs text-gray-400">всего заявок</p>
+              <p className="text-2xl font-bold text-gray-900">{totalPersons}</p>
+              <p className="text-xs text-gray-400">туристов</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">{unassigned.length}</p>
+              <p className="text-2xl font-bold text-yellow-600">{unassignedPersons}</p>
               <p className="text-xs text-gray-400">нераспред.</p>
             </div>
             <div className="text-center">
@@ -311,7 +313,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
               <h3 className="text-sm font-semibold text-gray-800">
                 Нераспределённые
                 <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
-                  {unassigned.length}
+                  {unassignedPersons} чел.
                 </span>
               </h3>
               {canEdit && unassigned.length > 0 && (
@@ -345,7 +347,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
             {selected.size > 0 && (
               <div className="px-4 py-3 border-t border-gray-100 bg-blue-50">
                 <p className="text-xs text-blue-700 font-medium mb-2">
-                  Выбрано: {selected.size} туристов. Нажмите «В автобус» в нужной группе.
+                  Выбрано: {selected.size} заявок ({selectedPersons} чел.). Нажмите «В автобус» в нужной группе.
                 </p>
               </div>
             )}
@@ -430,7 +432,8 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
           ) : (
             groups.map((group) => {
               const isEditing = editingGroupId === group.id;
-              const fillRatio = group.applications.length / group.maxSeats;
+              const groupPersons = group.applications.reduce((s, a) => s + a.persons, 0);
+              const fillRatio = group.maxSeats > 0 ? groupPersons / group.maxSeats : 0;
               const fillColor = fillRatio >= 1 ? "bg-red-500" : fillRatio >= 0.8 ? "bg-yellow-500" : "bg-green-500";
 
               return (
@@ -490,7 +493,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                           <div className="flex items-center gap-3 flex-wrap">
                             <h4 className="text-base font-semibold text-gray-900">{group.name}</h4>
                             <span className="text-sm text-gray-500">
-                              {group.applications.length}/{group.maxSeats} чел.
+                              {groupPersons}/{group.maxSeats} чел.
                             </span>
                           </div>
                           <div className="flex gap-4 mt-1 text-xs text-gray-500 flex-wrap">
@@ -504,7 +507,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                               <div className={`h-1.5 rounded-full ${fillColor}`} style={{ width: `${Math.min(100, fillRatio * 100)}%` }} />
                             </div>
                             <span className="text-xs text-gray-400">
-                              {group.maxSeats - group.applications.length} свободно
+                              {Math.max(0, group.maxSeats - groupPersons)} свободно
                             </span>
                           </div>
                         </div>
@@ -514,7 +517,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                               onClick={() => handleAssign(group.id)}
                               className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium"
                             >
-                              В автобус ({selected.size})
+                              В автобус ({selectedPersons} чел.)
                             </button>
                           )}
                           {canEdit && (

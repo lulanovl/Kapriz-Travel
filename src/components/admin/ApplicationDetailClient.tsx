@@ -84,6 +84,7 @@ type ApplicationData = {
   } | null;
   reminders: Reminder[];
   managers: { id: string; name: string }[];
+  tourDepartures: { id: string; departureDate: string }[];
   currentUserId: string;
   currentUserRole: string;
 };
@@ -133,6 +134,25 @@ export default function ApplicationDetailClient({
   const balance = finalPrice - depositPaid;
   const calculatedPrice = data.tour.basePrice * data.persons;
   const priceMatchesCalc = Math.abs(finalPrice - calculatedPrice) < 1;
+
+  const [departureId, setDepartureId] = useState(data.departure?.id ?? "");
+  const [departureSaving, setDepartureSaving] = useState(false);
+  const [departureSaved, setDepartureSaved] = useState(false);
+
+  const saveDeparture = async () => {
+    setDepartureSaving(true);
+    const res = await fetch(`/api/admin/applications/${data.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departureId: departureId || null }),
+    });
+    setDepartureSaving(false);
+    if (res.ok) {
+      setDepartureSaved(true);
+      setTimeout(() => setDepartureSaved(false), 2000);
+      router.refresh();
+    }
+  };
 
   const [saveError, setSaveError] = useState("");
   const [bookingError, setBookingError] = useState("");
@@ -652,26 +672,42 @@ export default function ApplicationDetailClient({
               </div>
             </div>
 
-            {data.departure && (
-              <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-600 font-medium mb-1">
-                  Дата выезда
-                </p>
-                <p className="text-sm text-blue-900">
-                  {new Date(data.departure.departureDate).toLocaleDateString("ru", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-                {data.group && (
-                  <p className="text-xs text-blue-500 mt-0.5">
-                    Группа: {data.group.name}
-                  </p>
-                )}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Дата выезда
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={departureId}
+                  onChange={(e) => setDepartureId(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">— Не выбрана —</option>
+                  {data.tourDepartures.map((dep) => (
+                    <option key={dep.id} value={dep.id}>
+                      {new Date(dep.departureDate).toLocaleDateString("ru", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={saveDeparture}
+                  disabled={departureSaving}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {departureSaving ? "..." : departureSaved ? "✓" : "Сохранить"}
+                </button>
               </div>
-            )}
+              {data.group && (
+                <p className="text-xs text-blue-500 mt-1">
+                  Группа: {data.group.name}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
