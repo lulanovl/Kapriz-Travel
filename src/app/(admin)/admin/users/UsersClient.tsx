@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 const ROLES = [
   { id: "ADMIN", label: "Администратор" },
@@ -34,7 +33,6 @@ export default function UsersClient({
   users: User[];
   currentUserId: string;
 }) {
-  const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [showForm, setShowForm] = useState(false);
 
@@ -69,12 +67,16 @@ export default function UsersClient({
 
     setCreating(false);
     if (res.ok) {
+      const newUser = await res.json();
+      setUsers((prev) => [
+        ...prev,
+        { ...newUser, telegramChatId: null, _count: { applications: 0 } },
+      ]);
       setName("");
       setEmail("");
       setPassword("");
       setRole("MANAGER");
       setShowForm(false);
-      router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
       setCreateError(d.error ?? "Ошибка создания");
@@ -106,8 +108,13 @@ export default function UsersClient({
 
     setEditSaving(false);
     if (res.ok) {
+      const updated = await res.json();
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === updated.id ? { ...u, name: updated.name, role: updated.role } : u
+        )
+      );
       setEditUser(null);
-      router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
       setEditError(d.error ?? "Ошибка сохранения");
