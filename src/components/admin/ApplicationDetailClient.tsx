@@ -9,6 +9,7 @@ const STATUSES = [
   { id: "CONTACT", label: "Контакт", color: "bg-yellow-100 text-yellow-700" },
   { id: "PROPOSAL", label: "КП", color: "bg-purple-100 text-purple-700" },
   { id: "DEPOSIT", label: "Предоплата", color: "bg-orange-100 text-orange-700" },
+  { id: "IN_BUS", label: "В автобусе", color: "bg-indigo-100 text-indigo-700" },
   { id: "NO_SHOW", label: "Не явился", color: "bg-red-100 text-red-700" },
   { id: "ON_TOUR", label: "В туре", color: "bg-green-100 text-green-700" },
   { id: "FEEDBACK", label: "Отзыв", color: "bg-teal-100 text-teal-700" },

@@ -19,10 +19,18 @@ enum ApplicationStatus {
   CONTACT
   PROPOSAL
   DEPOSIT
+  IN_BUS
   NO_SHOW
   ON_TOUR
   FEEDBACK
   ARCHIVE
+}
+
+enum GuidePaymentStatus {
+  PENDING      // not marked by guide yet
+  PAID         // tourist paid balance to guide
+  TRANSFERRED  // tourist paid to manager/company
+  NO_SHOW      // tourist didn't show up (marked by guide)
 }
 
 enum PaymentStatus {
@@ -35,15 +43,6 @@ enum Currency {
   KGS
   USD
   EUR
-}
-
-enum ExpenseCategory {
-  GUIDE
-  DRIVER
-  TRANSPORT
-  ACCOMMODATION
-  FOOD
-  OTHER
 }
 
 enum DepartureStatus {
@@ -220,9 +219,10 @@ model Booking {
   depositPaid       Int           @default(0)
   depositDate       DateTime?
   paymentStatus     PaymentStatus @default(PENDING)
-  noShow            Boolean       @default(false)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  noShow             Boolean            @default(false)
+  guidePaymentStatus GuidePaymentStatus @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   application  Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   priceHistory PriceHistory[]
@@ -247,9 +247,9 @@ model PriceHistory {
 
 // ─── 10. Expenses (расходы на уровне группы/автобуса) ───────────────────────
 model Expense {
-  id        String          @id @default(cuid())
+  id        String   @id @default(cuid())
   groupId   String
-  category  ExpenseCategory
+  category  String   // free-form: "Питание", "Бензин", "Ночлег", etc.
   amount    Int
   currency  Currency        @default(KGS)
   note      String?

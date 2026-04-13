@@ -23,9 +23,14 @@ export async function POST(
   }
 
   if (unassign) {
-    // Remove from group (set groupId = null)
+    // Remove from group, revert IN_BUS → DEPOSIT
     await prisma.application.updateMany({
-      where: { id: { in: applicationIds } },
+      where: { id: { in: applicationIds }, status: "IN_BUS" },
+      data: { groupId: null, status: "DEPOSIT" },
+    });
+    // Also clear groupId for non-IN_BUS applications (edge case)
+    await prisma.application.updateMany({
+      where: { id: { in: applicationIds }, status: { not: "DEPOSIT" } },
       data: { groupId: null },
     });
     return NextResponse.json({ ok: true, unassigned: applicationIds.length });
@@ -35,10 +40,10 @@ export async function POST(
   const group = await prisma.group.findUnique({ where: { id: params.id } });
   if (!group) return NextResponse.json({ error: "Группа не найдена" }, { status: 404 });
 
-  // Assign applications to group
+  // Assign applications to group and set IN_BUS status
   await prisma.application.updateMany({
     where: { id: { in: applicationIds } },
-    data: { groupId: params.id },
+    data: { groupId: params.id, status: "IN_BUS" },
   });
 
   return NextResponse.json({ ok: true, assigned: applicationIds.length });

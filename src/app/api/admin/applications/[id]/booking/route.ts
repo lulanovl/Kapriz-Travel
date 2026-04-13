@@ -19,6 +19,8 @@ export async function POST(
     where: { applicationId: params.id },
   });
 
+  const AUTO_DEPOSIT_STATUSES = ["NEW", "CONTACT", "PROPOSAL"];
+
   if (existing) {
     // Track price change
     if (finalPrice !== undefined && finalPrice !== existing.finalPrice) {
@@ -44,6 +46,21 @@ export async function POST(
         ...(paymentStatus !== undefined && { paymentStatus }),
       },
     });
+
+    // Auto-advance to DEPOSIT when deposit is entered
+    if (depositPaid !== undefined && depositPaid > 0) {
+      const app = await prisma.application.findUnique({
+        where: { id: params.id },
+        select: { status: true },
+      });
+      if (app && AUTO_DEPOSIT_STATUSES.includes(app.status)) {
+        await prisma.application.update({
+          where: { id: params.id },
+          data: { status: "DEPOSIT" },
+        });
+      }
+    }
+
     return NextResponse.json(updated);
   } else {
     // Create booking
@@ -53,18 +70,29 @@ export async function POST(
     });
     if (!application) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+    const newDepositPaid = depositPaid ?? 0;
+
     const booking = await prisma.booking.create({
       data: {
         applicationId: params.id,
         basePrice: application.tour.basePrice,
         finalPrice: finalPrice ?? application.tour.basePrice,
         priceChangeReason: priceChangeReason ?? null,
-        depositPaid: depositPaid ?? 0,
+        depositPaid: newDepositPaid,
         depositDate: depositDate ? new Date(depositDate) : null,
         currency: currency ?? "KGS",
         paymentStatus: paymentStatus ?? "PENDING",
       },
     });
+
+    // Auto-advance to DEPOSIT when deposit is entered on create
+    if (newDepositPaid > 0 && AUTO_DEPOSIT_STATUSES.includes(application.status)) {
+      await prisma.application.update({
+        where: { id: params.id },
+        data: { status: "DEPOSIT" },
+      });
+    }
+
     return NextResponse.json(booking);
   }
 }

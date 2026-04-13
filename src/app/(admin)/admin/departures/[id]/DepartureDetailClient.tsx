@@ -39,7 +39,8 @@ const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-blue-100 text-blue-700",
   CONTACT: "bg-indigo-100 text-indigo-700",
   PROPOSAL: "bg-purple-100 text-purple-700",
-  DEPOSIT: "bg-green-100 text-green-700",
+  DEPOSIT: "bg-orange-100 text-orange-700",
+  IN_BUS: "bg-indigo-100 text-indigo-700",
   NO_SHOW: "bg-red-100 text-red-700",
   ON_TOUR: "bg-teal-100 text-teal-700",
   FEEDBACK: "bg-yellow-100 text-yellow-700",
@@ -47,10 +48,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 const STATUS_LABELS: Record<string, string> = {
   NEW: "Новая", CONTACT: "Контакт", PROPOSAL: "КП", DEPOSIT: "Предоплата",
-  NO_SHOW: "Не явился", ON_TOUR: "В туре", FEEDBACK: "Отзыв", ARCHIVE: "Архив",
+  IN_BUS: "В автобусе", NO_SHOW: "Не явился", ON_TOUR: "В туре",
+  FEEDBACK: "Отзыв", ARCHIVE: "Архив",
 };
 
 const EXPENSE_CURRENCIES = ["KGS", "USD", "EUR"];
+const EXPENSE_CATEGORIES = ["Гид", "Водитель", "Транспорт", "Проживание", "Питание", "Топливо", "Прочее"];
 
 function WaLink({ phone }: { phone: string }) {
   const clean = phone.replace(/\D/g, "");
@@ -712,13 +715,14 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                         {/* Add expense form */}
                         {canEdit && (
                           <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              placeholder="Статья расхода"
+                            <select
                               value={expForm.category}
                               onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, category: e.target.value } }))}
                               className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
+                            >
+                              <option value="">— Категория —</option>
+                              {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
                             <div className="flex gap-1">
                               <input
                                 type="number"

@@ -14,6 +14,17 @@ export default async function ApplicationsPage() {
 
   const isManager = session.user.role === "MANAGER";
 
+  // Auto-transition: if departure date has passed and status is DEPOSIT/IN_BUS → ON_TOUR
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  await prisma.application.updateMany({
+    where: {
+      status: { in: ["DEPOSIT", "IN_BUS"] },
+      departure: { departureDate: { lte: today } },
+    },
+    data: { status: "ON_TOUR" },
+  });
+
   const applications = await prisma.application.findMany({
     where: isManager ? { managerId: session.user.id } : undefined,
     orderBy: { createdAt: "desc" },
