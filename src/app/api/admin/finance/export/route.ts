@@ -19,7 +19,8 @@ export async function GET() {
           include: {
             client: { select: { name: true, whatsapp: true } },
             tour: { select: { title: true } },
-            tourDate: { select: { startDate: true, endDate: true } },
+            departure: { select: { departureDate: true } },
+            group: { select: { name: true } },
           },
         },
       },
@@ -27,9 +28,11 @@ export async function GET() {
     prisma.expense.findMany({
       orderBy: { createdAt: "asc" },
       include: {
-        tourDate: {
+        group: {
           include: {
-            tour: { select: { title: true } },
+            departure: {
+              include: { tour: { select: { title: true } } },
+            },
           },
         },
       },
@@ -43,20 +46,19 @@ export async function GET() {
     Клиент: b.application.client.name,
     WhatsApp: b.application.client.whatsapp,
     Тур: b.application.tour.title,
-    "Дата начала": b.application.tourDate
-      ? new Date(b.application.tourDate.startDate).toLocaleDateString("ru-RU")
+    "Дата выезда": b.application.departure
+      ? new Date(b.application.departure.departureDate).toLocaleDateString("ru-RU")
       : "",
+    Группа: b.application.group?.name ?? "",
     "Базовая цена": b.basePrice,
     "Итоговая цена": b.finalPrice,
     Валюта: b.currency,
     Предоплата: b.depositPaid,
     Остаток: b.finalPrice - b.depositPaid,
     "Статус оплаты":
-      b.paymentStatus === "PAID"
-        ? "Оплачено"
-        : b.paymentStatus === "PARTIAL"
-        ? "Частично"
-        : "Ожидает",
+      b.paymentStatus === "PAID" ? "Оплачено"
+      : b.paymentStatus === "PARTIAL" ? "Частично"
+      : "Ожидает",
     "Дата создания": new Date(b.createdAt).toLocaleDateString("ru-RU"),
   }));
   const ws1 = XLSX.utils.json_to_sheet(bookingRows);
@@ -64,16 +66,13 @@ export async function GET() {
 
   // Sheet 2: Expenses
   const CATEGORY_LABELS: Record<string, string> = {
-    GUIDE: "Гид",
-    DRIVER: "Водитель",
-    TRANSPORT: "Транспорт",
-    ACCOMMODATION: "Проживание",
-    FOOD: "Питание",
-    OTHER: "Прочее",
+    GUIDE: "Гид", DRIVER: "Водитель", TRANSPORT: "Транспорт",
+    ACCOMMODATION: "Проживание", FOOD: "Питание", OTHER: "Прочее",
   };
   const expenseRows = expenses.map((e) => ({
-    Тур: e.tourDate.tour.title,
-    "Дата начала": new Date(e.tourDate.startDate).toLocaleDateString("ru-RU"),
+    Тур: e.group.departure.tour.title,
+    "Дата выезда": new Date(e.group.departure.departureDate).toLocaleDateString("ru-RU"),
+    Группа: e.group.name ?? "",
     Категория: CATEGORY_LABELS[e.category] ?? e.category,
     Сумма: e.amount,
     Валюта: e.currency,

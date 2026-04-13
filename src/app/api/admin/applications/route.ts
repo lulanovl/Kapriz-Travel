@@ -15,7 +15,8 @@ export async function GET() {
     include: {
       client: { select: { id: true, name: true, whatsapp: true, country: true } },
       tour: { select: { id: true, title: true } },
-      tourDate: { select: { id: true, startDate: true, endDate: true } },
+      departure: { select: { id: true, departureDate: true } },
+      group: { select: { id: true, name: true } },
       manager: { select: { id: true, name: true } },
       booking: {
         select: {
@@ -40,16 +41,13 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
-    // client fields
     clientName,
     clientWhatsapp,
     clientCountry,
     clientCity,
-    // application fields
     tourId,
-    tourDateId,
+    departureId,
     persons,
-    preferredDate,
     comment,
     managerId,
     source,
@@ -64,7 +62,6 @@ export async function POST(req: NextRequest) {
 
   const whatsapp = String(clientWhatsapp).trim();
 
-  // Deduplicate client by WhatsApp
   let client = await prisma.client.findUnique({ where: { whatsapp } });
   if (!client) {
     client = await prisma.client.create({
@@ -81,9 +78,8 @@ export async function POST(req: NextRequest) {
     data: {
       clientId: client.id,
       tourId,
-      tourDateId: tourDateId || null,
+      departureId: departureId || null,
       persons: Number(persons),
-      preferredDate: preferredDate || null,
       comment: comment || null,
       managerId: managerId || null,
       status: "NEW",
@@ -92,6 +88,7 @@ export async function POST(req: NextRequest) {
     include: {
       client: { select: { id: true, name: true, whatsapp: true } },
       tour: { select: { id: true, title: true } },
+      departure: { select: { id: true, departureDate: true } },
     },
   });
 

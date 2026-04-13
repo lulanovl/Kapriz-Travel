@@ -20,14 +20,12 @@ export default async function NewApplicationPage() {
         id: true,
         title: true,
         basePrice: true,
-        tourDates: {
-          where: { startDate: { gte: new Date() } },
-          orderBy: { startDate: "asc" },
+        departures: {
+          where: { status: "OPEN", departureDate: { gte: new Date() } },
+          orderBy: { departureDate: "asc" },
           select: {
             id: true,
-            startDate: true,
-            endDate: true,
-            maxSeats: true,
+            departureDate: true,
           },
         },
       },
@@ -42,10 +40,9 @@ export default async function NewApplicationPage() {
   // Serialize dates
   const serializedTours = tours.map((t) => ({
     ...t,
-    tourDates: t.tourDates.map((d) => ({
+    departures: t.departures.map((d) => ({
       ...d,
-      startDate: d.startDate.toISOString(),
-      endDate: d.endDate.toISOString(),
+      departureDate: d.departureDate.toISOString(),
     })),
   }));
 

@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/admin/Header";
-import TourDatesManager from "@/components/admin/tours/TourDatesManager";
 import TourEditClient from "@/components/admin/tours/TourEditClient";
+import TourScheduleManager from "@/components/admin/tours/TourScheduleManager";
+import TourDeparturesManager from "@/components/admin/tours/TourDeparturesManager";
 
 const TOUR_TYPE_LABELS: Record<string, string> = {
   trekking: "Треккинг",
@@ -27,13 +28,20 @@ export default async function TourDetailPage({
   const tour = await prisma.tour.findUnique({
     where: { id: params.id },
     include: {
-      tourDates: {
+      schedules: { orderBy: { createdAt: "asc" } },
+      departures: {
         include: {
-          guide: true,
-          driver: true,
+          groups: {
+            select: {
+              id: true,
+              name: true,
+              maxSeats: true,
+              _count: { select: { applications: true } },
+            },
+          },
           _count: { select: { applications: true } },
         },
-        orderBy: { startDate: "asc" },
+        orderBy: { departureDate: "asc" },
       },
     },
   });
@@ -51,9 +59,7 @@ export default async function TourDetailPage({
       <div className="flex-1 p-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link href="/admin/tours" className="hover:text-blue-600">
-            Туры
-          </Link>
+          <Link href="/admin/tours" className="hover:text-blue-600">Туры</Link>
           <span>/</span>
           <span className="text-gray-800">{tour.title}</span>
         </div>
@@ -89,9 +95,7 @@ export default async function TourDetailPage({
                     <div className="space-y-2">
                       {itinerary.map((day) => (
                         <div key={day.day} className="flex gap-3">
-                          <span className="text-xs font-bold text-blue-600 w-12 shrink-0">
-                            День {day.day}
-                          </span>
+                          <span className="text-xs font-bold text-blue-600 w-12 shrink-0">День {day.day}</span>
                           <div>
                             <p className="text-sm font-medium">{day.title}</p>
                             <p className="text-xs text-gray-500">{day.description}</p>
@@ -104,16 +108,27 @@ export default async function TourDetailPage({
               </div>
             )}
 
-            {/* Dates */}
+            {/* Schedule rules */}
+            {canEdit && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <TourScheduleManager
+                  tourId={tour.id}
+                  initialSchedules={tour.schedules.map((s) => ({
+                    ...s,
+                    rangeStart: s.rangeStart ? s.rangeStart.toISOString() : null,
+                    rangeEnd: s.rangeEnd ? s.rangeEnd.toISOString() : null,
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Departures */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <TourDatesManager
+              <TourDeparturesManager
                 tourId={tour.id}
-                initialDates={tour.tourDates.map((d) => ({
+                initialDepartures={tour.departures.map((d) => ({
                   ...d,
-                  startDate: d.startDate.toISOString(),
-                  endDate: d.endDate.toISOString(),
-                  guide: d.guide ? { id: d.guide.id, name: d.guide.name } : null,
-                  driver: d.driver ? { id: d.driver.id, name: d.driver.name } : null,
+                  departureDate: d.departureDate.toISOString(),
                 }))}
               />
             </div>
@@ -149,6 +164,10 @@ export default async function TourDetailPage({
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Группа</dt>
                   <dd className="font-medium">{tour.minGroupSize}–{tour.maxGroupSize} чел.</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Выездов</dt>
+                  <dd className="font-medium">{tour.departures.length}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Slug</dt>

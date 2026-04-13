@@ -46,7 +46,7 @@ export default async function ClientDetailPage({
       reviews: {
         orderBy: { createdAt: "desc" },
         include: {
-          tourDate: {
+          departure: {
             include: { tour: { select: { title: true } } },
           },
         },
@@ -236,9 +236,6 @@ export default async function ClientDetailPage({
                         </div>
                         <div className="flex items-center gap-3 text-xs text-gray-400">
                           <span>{app.persons} чел.</span>
-                          {app.preferredDate && (
-                            <span>{app.preferredDate}</span>
-                          )}
                           {app.manager && <span>{app.manager.name}</span>}
                           <span>
                             {new Date(app.createdAt).toLocaleDateString("ru", {
@@ -293,7 +290,7 @@ export default async function ClientDetailPage({
                         {"☆".repeat(5 - review.rating)}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {review.tourDate.tour.title}
+                        {review.departure?.tour.title}
                       </span>
                       {review.isPublished && (
                         <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">

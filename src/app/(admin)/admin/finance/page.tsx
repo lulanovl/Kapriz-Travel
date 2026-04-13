@@ -38,7 +38,7 @@ export default async function FinancePage() {
           include: {
             client: { select: { name: true } },
             tour: { select: { title: true } },
-            tourDate: { select: { startDate: true } },
+            departure: { select: { departureDate: true } },
           },
         },
       },
@@ -52,8 +52,12 @@ export default async function FinancePage() {
       orderBy: { createdAt: "desc" },
       take: 50,
       include: {
-        tourDate: {
-          include: { tour: { select: { title: true } } },
+        group: {
+          include: {
+            departure: {
+              include: { tour: { select: { title: true } } },
+            },
+          },
         },
       },
     }),
@@ -154,9 +158,13 @@ export default async function FinancePage() {
                     {recentExpenses.map((e) => (
                       <tr key={e.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2.5">
-                          <p className="font-medium text-gray-900 truncate max-w-[180px]">{e.tourDate.tour.title}</p>
+                          <p className="font-medium text-gray-900 truncate max-w-[180px]">
+                            {e.group.departure.tour.title}
+                          </p>
                           <p className="text-xs text-gray-400">
-                            {new Date(e.tourDate.startDate).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}
+                            {new Date(e.group.departure.departureDate).toLocaleDateString("ru-RU", {
+                              day: "2-digit", month: "short", year: "numeric",
+                            })}
                           </p>
                         </td>
                         <td className="px-4 py-2.5">
@@ -226,8 +234,10 @@ export default async function FinancePage() {
                         {b.application.tour.title}
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
-                        {b.application.tourDate
-                          ? new Date(b.application.tourDate.startDate).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })
+                        {b.application.departure
+                          ? new Date(b.application.departure.departureDate).toLocaleDateString("ru-RU", {
+                              day: "2-digit", month: "short",
+                            })
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-medium">

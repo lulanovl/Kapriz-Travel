@@ -31,7 +31,8 @@ export default async function ApplicationDetailPage({
     include: {
       client: true,
       tour: { select: { id: true, title: true, basePrice: true, slug: true } },
-      tourDate: { select: { id: true, startDate: true, endDate: true, maxSeats: true } },
+      departure: { select: { id: true, departureDate: true } },
+      group: { select: { id: true, name: true } },
       manager: { select: { id: true, name: true, email: true } },
       booking: {
         include: {
@@ -69,7 +70,6 @@ export default async function ApplicationDetailPage({
     id: application.id,
     status: application.status,
     persons: application.persons,
-    preferredDate: application.preferredDate ?? null,
     comment: application.comment ?? null,
     utmSource: application.utmSource ?? null,
     utmMedium: application.utmMedium ?? null,
@@ -87,13 +87,14 @@ export default async function ApplicationDetailPage({
       notes: application.client.notes ?? null,
     },
     tour: application.tour,
-    tourDate: application.tourDate
+    departure: application.departure
       ? {
-          id: application.tourDate.id,
-          startDate: application.tourDate.startDate.toISOString(),
-          endDate: application.tourDate.endDate.toISOString(),
-          maxSeats: application.tourDate.maxSeats,
+          id: application.departure.id,
+          departureDate: application.departure.departureDate.toISOString(),
         }
+      : null,
+    group: application.group
+      ? { id: application.group.id, name: application.group.name }
       : null,
     manager: application.manager ?? null,
     booking: application.booking

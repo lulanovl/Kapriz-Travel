@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       whatsapp,
       country,
       tourId,
-      tourDateId,
+      departureId,
       persons,
       comment,
       utmSource,
@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
       utmCampaign,
     } = body;
 
-    // Validate required fields
     if (!name?.trim() || !whatsapp?.trim() || !country?.trim() || !tourId) {
       return NextResponse.json(
         { error: "Заполните обязательные поля" },
@@ -26,20 +25,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Sanitize phone
     const cleanPhone = whatsapp.replace(/\s+/g, "").replace(/[^+\d]/g, "");
 
-    // Verify tour exists
     const tour = await prisma.tour.findUnique({ where: { id: tourId } });
     if (!tour) {
       return NextResponse.json({ error: "Тур не найден" }, { status: 404 });
     }
 
-    // Deduplicate client by WhatsApp
-    let client = await prisma.client.findUnique({
-      where: { whatsapp: cleanPhone },
-    });
+    // Verify departure belongs to this tour (if provided)
+    if (departureId) {
+      const departure = await prisma.departure.findUnique({ where: { id: departureId } });
+      if (!departure || departure.tourId !== tourId) {
+        return NextResponse.json({ error: "Дата выезда не найдена" }, { status: 404 });
+      }
+    }
 
+    // Deduplicate client by WhatsApp
+    let client = await prisma.client.findUnique({ where: { whatsapp: cleanPhone } });
     if (!client) {
       client = await prisma.client.create({
         data: {
@@ -51,12 +53,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create application
     const application = await prisma.application.create({
       data: {
         clientId: client.id,
         tourId,
-        tourDateId: tourDateId || null,
+        departureId: departureId || null,
         persons: Number(persons) || 1,
         comment: comment?.trim() || null,
         status: "NEW",
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send Telegram notifications to all linked managers/admins
+    // Send Telegram notifications
     try {
       const notifText = formatApplicationNotification({
         clientName: client.name,
@@ -99,9 +100,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, applicationId: application.id });
   } catch (error) {
     console.error("Apply API error:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
   }
 }

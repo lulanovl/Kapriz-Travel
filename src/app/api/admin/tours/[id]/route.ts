@@ -12,16 +12,6 @@ export async function GET(
 
   const tour = await prisma.tour.findUnique({
     where: { id: params.id },
-    include: {
-      tourDates: {
-        include: {
-          guide: true,
-          driver: true,
-          _count: { select: { applications: true } },
-        },
-        orderBy: { startDate: "asc" },
-      },
-    },
   });
 
   if (!tour) return NextResponse.json({ error: "Not found" }, { status: 404 });

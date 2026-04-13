@@ -20,7 +20,7 @@ export default async function ToursPage() {
   const tours = await prisma.tour.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { tourDates: true, applications: true } },
+      _count: { select: { departures: true, applications: true } },
     },
   });
 
@@ -95,7 +95,7 @@ export default async function ToursPage() {
                     </td>
                     <td className="px-5 py-4 text-gray-600">
                       <Link href={`/admin/tours/${tour.id}`} className="block">
-                        {tour._count.tourDates}
+                        {tour._count.departures}
                       </Link>
                     </td>
                     <td className="px-5 py-4 text-gray-600">

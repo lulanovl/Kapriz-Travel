@@ -15,13 +15,18 @@ const PLACEHOLDER_IMAGES = [
 ];
 
 async function getTour(slug: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   return prisma.tour.findUnique({
     where: { slug, isActive: true },
     include: {
-      tourDates: {
-        where: { startDate: { gte: new Date() } },
-        orderBy: { startDate: "asc" },
-        include: { _count: { select: { applications: true } } },
+      departures: {
+        where: { status: "OPEN", departureDate: { gte: today } },
+        orderBy: { departureDate: "asc" },
+        include: {
+          _count: { select: { applications: true } },
+          groups: { select: { maxSeats: true, _count: { select: { applications: true } } } },
+        },
       },
     },
   });
@@ -254,7 +259,7 @@ export default async function TourPage({
               </div>
 
               {/* Availability calendar */}
-              <AvailabilityCalendar tourDates={tour.tourDates} tourSlug={tour.slug} />
+              <AvailabilityCalendar departures={tour.departures} tourSlug={tour.slug} />
             </div>
           </div>
         </div>

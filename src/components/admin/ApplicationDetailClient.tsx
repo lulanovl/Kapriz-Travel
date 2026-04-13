@@ -44,7 +44,6 @@ type ApplicationData = {
   id: string;
   status: string;
   persons: number;
-  preferredDate: string | null;
   comment: string | null;
   utmSource: string | null;
   utmMedium: string | null;
@@ -62,11 +61,13 @@ type ApplicationData = {
     notes: string | null;
   };
   tour: { id: string; title: string; basePrice: number; slug: string };
-  tourDate: {
+  departure: {
     id: string;
-    startDate: string;
-    endDate: string;
-    maxSeats: number;
+    departureDate: string;
+  } | null;
+  group: {
+    id: string;
+    name: string;
   } | null;
   manager: { id: string; name: string; email: string } | null;
   booking: {
@@ -649,34 +650,26 @@ export default function ApplicationDetailClient({
                 <p className="text-xs text-gray-400">Человек</p>
                 <p className="font-medium">{data.persons}</p>
               </div>
-              {data.preferredDate && (
-                <div>
-                  <p className="text-xs text-gray-400">Желаемая дата</p>
-                  <p className="font-medium">{data.preferredDate}</p>
-                </div>
-              )}
             </div>
 
-            {data.tourDate && (
+            {data.departure && (
               <div className="mt-2 p-2 bg-blue-50 rounded-lg">
                 <p className="text-xs text-blue-600 font-medium mb-1">
-                  Назначенная дата
+                  Дата выезда
                 </p>
                 <p className="text-sm text-blue-900">
-                  {new Date(data.tourDate.startDate).toLocaleDateString("ru", {
-                    day: "numeric",
-                    month: "long",
-                  })}{" "}
-                  —{" "}
-                  {new Date(data.tourDate.endDate).toLocaleDateString("ru", {
+                  {new Date(data.departure.departureDate).toLocaleDateString("ru", {
+                    weekday: "long",
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })}
                 </p>
-                <p className="text-xs text-blue-500 mt-0.5">
-                  Макс. мест: {data.tourDate.maxSeats}
-                </p>
+                {data.group && (
+                  <p className="text-xs text-blue-500 mt-0.5">
+                    Группа: {data.group.name}
+                  </p>
+                )}
               </div>
             )}
           </div>

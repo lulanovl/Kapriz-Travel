@@ -6,38 +6,46 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
   const from = new Date();
-  from.setMonth(from.getMonth() - 3);
+  from.setMonth(from.getMonth() - 1);
   from.setHours(0, 0, 0, 0);
 
   const to = new Date();
   to.setMonth(to.getMonth() + 12);
 
-  const tourDates = await prisma.tourDate.findMany({
-    where: { startDate: { gte: from, lte: to } },
-    orderBy: { startDate: "asc" },
+  const departures = await prisma.departure.findMany({
+    where: { departureDate: { gte: from, lte: to } },
+    orderBy: { departureDate: "asc" },
     include: {
       tour: { select: { id: true, title: true } },
-      guide: { select: { name: true } },
-      driver: { select: { name: true } },
+      groups: {
+        select: {
+          id: true,
+          name: true,
+          maxSeats: true,
+          guide: { select: { name: true } },
+          driver: { select: { name: true } },
+          _count: { select: { applications: true } },
+        },
+      },
       _count: { select: { applications: true } },
     },
   });
 
-  const serialized = tourDates.map((td) => ({
-    id: td.id,
-    startDate: td.startDate.toISOString(),
-    endDate: td.endDate.toISOString(),
-    maxSeats: td.maxSeats,
-    tour: td.tour,
-    guide: td.guide,
-    driver: td.driver,
-    applicationsCount: td._count.applications,
+  const serialized = departures.map((dep) => ({
+    id: dep.id,
+    departureDate: dep.departureDate.toISOString(),
+    tour: dep.tour,
+    applicationsCount: dep._count.applications,
+    maxSeats: dep.groups.reduce((s, g) => s + g.maxSeats, 0),
+    guide: dep.groups[0]?.guide ?? null,
+    driver: dep.groups[0]?.driver ?? null,
+    groupCount: dep.groups.length,
   }));
 
   return (
     <>
       <Header title="Календарь" />
-      <CalendarClient tourDates={serialized} />
+      <CalendarClient departures={serialized} />
     </>
   );
 }

@@ -7,11 +7,9 @@ type Tour = {
   id: string;
   title: string;
   basePrice: number;
-  tourDates: {
+  departures: {
     id: string;
-    startDate: string;
-    endDate: string;
-    maxSeats: number;
+    departureDate: string;
   }[];
 };
 
@@ -37,9 +35,8 @@ export default function NewApplicationForm({
   const [clientCity, setClientCity] = useState("");
 
   const [tourId, setTourId] = useState("");
-  const [tourDateId, setTourDateId] = useState("");
+  const [departureId, setDepartureId] = useState("");
   const [persons, setPersons] = useState(1);
-  const [preferredDate, setPreferredDate] = useState("");
   const [comment, setComment] = useState("");
   const [managerId, setManagerId] = useState(currentUserId);
   const [source, setSource] = useState("instagram");
@@ -64,9 +61,8 @@ export default function NewApplicationForm({
         clientCountry: clientCountry || null,
         clientCity: clientCity || null,
         tourId,
-        tourDateId: tourDateId || null,
+        departureId: departureId || null,
         persons,
-        preferredDate: preferredDate || null,
         comment: comment || null,
         managerId: managerId || null,
         source,
@@ -159,7 +155,7 @@ export default function NewApplicationForm({
               value={tourId}
               onChange={(e) => {
                 setTourId(e.target.value);
-                setTourDateId("");
+                setDepartureId("");
               }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -172,58 +168,28 @@ export default function NewApplicationForm({
             </select>
           </div>
 
-          {selectedTour && selectedTour.tourDates.length > 0 && (
+          {selectedTour && selectedTour.departures.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                Дата отправления
+                Дата выезда
               </label>
               <select
-                value={tourDateId}
-                onChange={(e) => setTourDateId(e.target.value)}
+                value={departureId}
+                onChange={(e) => setDepartureId(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">— Дата не выбрана —</option>
-                {selectedTour.tourDates.map((d) => (
+                <option value="">— Уточним позже —</option>
+                {selectedTour.departures.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {new Date(d.startDate).toLocaleDateString("ru", {
+                    {new Date(d.departureDate).toLocaleDateString("ru", {
+                      weekday: "long",
                       day: "numeric",
                       month: "long",
                       year: "numeric",
-                    })}{" "}
-                    (макс. {d.maxSeats} мест)
+                    })}
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-
-          {!selectedTour && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Желаемая дата
-              </label>
-              <input
-                type="text"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-                placeholder="Например: май 2026"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
-
-          {selectedTour && (
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
-                Желаемая дата (если нет подходящей)
-              </label>
-              <input
-                type="text"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-                placeholder="Например: каждую пятницу"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
             </div>
           )}
 

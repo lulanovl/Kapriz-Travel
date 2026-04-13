@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/admin/applications/[id]
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
@@ -16,7 +15,15 @@ export async function GET(
     include: {
       client: true,
       tour: { select: { id: true, title: true, basePrice: true, slug: true } },
-      tourDate: true,
+      departure: { select: { id: true, departureDate: true, status: true, note: true } },
+      group: {
+        select: {
+          id: true,
+          name: true,
+          guide: { select: { id: true, name: true, phone: true } },
+          driver: { select: { id: true, name: true, phone: true } },
+        },
+      },
       manager: { select: { id: true, name: true, email: true } },
       booking: {
         include: { priceHistory: { orderBy: { changedAt: "desc" } } },
@@ -32,7 +39,6 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Manager can only see own applications
   if (
     session.user.role === "MANAGER" &&
     application.managerId !== session.user.id
@@ -43,7 +49,6 @@ export async function GET(
   return NextResponse.json(application);
 }
 
-// PATCH /api/admin/applications/[id]
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -52,9 +57,8 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { status, managerId, comment, persons, preferredDate } = body;
+  const { status, managerId, comment, persons, departureId, groupId } = body;
 
-  // Check the application exists and permissions
   const existing = await prisma.application.findUnique({
     where: { id: params.id },
     select: { managerId: true },
@@ -75,11 +79,14 @@ export async function PATCH(
       ...(managerId !== undefined && { managerId }),
       ...(comment !== undefined && { comment }),
       ...(persons !== undefined && { persons }),
-      ...(preferredDate !== undefined && { preferredDate }),
+      ...(departureId !== undefined && { departureId: departureId || null }),
+      ...(groupId !== undefined && { groupId: groupId || null }),
     },
     include: {
       client: { select: { id: true, name: true, whatsapp: true } },
       tour: { select: { id: true, title: true } },
+      departure: { select: { id: true, departureDate: true } },
+      group: { select: { id: true, name: true } },
       manager: { select: { id: true, name: true } },
     },
   });

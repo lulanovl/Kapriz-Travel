@@ -14,11 +14,11 @@ async function getTours() {
     where: { isActive: true },
     orderBy: { createdAt: "desc" },
     include: {
-      tourDates: {
-        where: { startDate: { gte: new Date() } },
-        orderBy: { startDate: "asc" },
+      departures: {
+        where: { status: "OPEN", departureDate: { gte: new Date() } },
+        orderBy: { departureDate: "asc" },
         take: 1,
-        include: { _count: { select: { applications: true } } },
+        select: { id: true, departureDate: true },
       },
     },
   });

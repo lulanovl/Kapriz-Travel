@@ -49,11 +49,9 @@ export default async function DashboardPage() {
 
   let upcomingTours: {
     id: string;
-    startDate: Date;
-    endDate: Date;
+    departureDate: Date;
     tour: { title: string };
     _count: { applications: number };
-    maxSeats: number;
   }[] = [];
 
   try {
@@ -93,11 +91,12 @@ export default async function DashboardPage() {
             tour: { select: { title: true } },
           },
         }),
-        prisma.tourDate.findMany({
+        prisma.departure.findMany({
           where: {
-            startDate: { gte: today, lte: nextWeek },
+            departureDate: { gte: today, lte: nextWeek },
+            status: "OPEN",
           },
-          orderBy: { startDate: "asc" },
+          orderBy: { departureDate: "asc" },
           take: 5,
           include: {
             tour: { select: { title: true } },
@@ -267,46 +266,24 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {upcomingTours.map((td) => {
-                const filled = td._count.applications;
-                const pct = Math.min(
-                  100,
-                  Math.round((filled / td.maxSeats) * 100)
-                );
-                const barColor =
-                  pct >= 90
-                    ? "bg-red-500"
-                    : pct >= 60
-                    ? "bg-yellow-500"
-                    : "bg-green-500";
-
-                return (
-                  <div key={td.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {td.tour.title}
-                      </p>
-                      <span className="text-xs text-gray-400 shrink-0 ml-2">
-                        {new Date(td.startDate).toLocaleDateString("ru", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${barColor} rounded-full transition-all`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500 shrink-0">
-                        {filled}/{td.maxSeats}
-                      </span>
-                    </div>
+              {upcomingTours.map((dep) => (
+                <div key={dep.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {dep.tour.title}
+                    </p>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">
+                      {new Date(dep.departureDate).toLocaleDateString("ru", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
                   </div>
-                );
-              })}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {dep._count.applications} заявок
+                  </p>
+                </div>
+              ))}
             </div>
           )}
         </div>

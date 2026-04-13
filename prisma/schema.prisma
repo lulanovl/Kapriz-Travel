@@ -46,34 +46,45 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum DepartureStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum ScheduleType {
+  WEEKLY
+  DATE_RANGE
+}
+
 // ─── 1. Users (CRM staff) ───────────────────────────────────────────────────
 model User {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   name           String
-  email          String    @unique
+  email          String   @unique
   password       String
-  role           Role      @default(MANAGER)
+  role           Role     @default(MANAGER)
   telegramChatId String?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime @default(now())
 
-  applications   Application[]
-  reminders      Reminder[]
+  applications Application[]
+  reminders    Reminder[]
 
   @@map("users")
 }
 
 // ─── 2. Clients (tourists) ──────────────────────────────────────────────────
 model Client {
-  id          String    @id @default(cuid())
-  name        String
-  whatsapp    String    @unique
-  country     String?
-  city        String?
-  tag         String?
-  source      String?
-  notes       String?
-  noShow      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  whatsapp  String   @unique
+  country   String?
+  city      String?
+  tag       String?
+  source    String?
+  notes     String?
+  noShow    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   applications Application[]
   reviews      Review[]
@@ -83,83 +94,122 @@ model Client {
 
 // ─── 3. Tours ───────────────────────────────────────────────────────────────
 model Tour {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   title          String
-  slug           String    @unique
-  description    String?   @db.Text
+  slug           String   @unique
+  description    String?  @db.Text
   itinerary      Json?
   included       Json?
   notIncluded    Json?
   basePrice      Int
-  minGroupSize   Int       @default(1)
-  maxGroupSize   Int       @default(20)
+  minGroupSize   Int      @default(1)
+  maxGroupSize   Int      @default(20)
   duration       Int?
   tourType       String?
-  isActive       Boolean   @default(true)
+  isActive       Boolean  @default(true)
   images         Json?
   mapEmbed       String?
   seoTitle       String?
   seoDescription String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  tourDates    TourDate[]
+  schedules    TourSchedule[]
+  departures   Departure[]
   applications Application[]
 
   @@map("tours")
 }
 
-// ─── 4. Tour Dates (groups) ─────────────────────────────────────────────────
-model TourDate {
-  id        String   @id @default(cuid())
-  tourId    String
-  startDate DateTime
-  endDate   DateTime
-  maxSeats  Int      @default(10)
-  guideId   String?
-  driverId  String?
-  createdAt DateTime @default(now())
+// ─── 4. Tour Schedules (recurring rules configured by managers) ─────────────
+// Используются как шаблон для создания выездов. Менеджер подтверждает каждый выезд вручную.
+model TourSchedule {
+  id         String       @id @default(cuid())
+  tourId     String
+  type       ScheduleType
+  // WEEKLY: дни недели [0=Вс, 1=Пн, 2=Вт, 3=Ср, 4=Чт, 5=Пт, 6=Сб]
+  daysOfWeek Int[]
+  // DATE_RANGE: диапазон дат (напр. праздничные выезды)
+  rangeStart DateTime?
+  rangeEnd   DateTime?
+  note       String?      // напр. "Праздничные выезды 1-10 мая"
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
 
-  tour         Tour          @relation(fields: [tourId], references: [id], onDelete: Cascade)
-  guide        Staff?        @relation("TourDateGuide", fields: [guideId], references: [id])
-  driver       Staff?        @relation("TourDateDriver", fields: [driverId], references: [id])
-  applications Application[]
-  expenses     Expense[]
-  reviews      Review[]
-  guideTokens  GuideToken[]
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
 
-  @@map("tour_dates")
+  @@map("tour_schedules")
 }
 
-// ─── 5. Applications ────────────────────────────────────────────────────────
-model Application {
-  id            String            @id @default(cuid())
-  clientId      String
+// ─── 5. Departures (конкретная дата выезда, подтверждённая менеджером) ──────
+model Departure {
+  id            String          @id @default(cuid())
   tourId        String
-  tourDateId    String?
-  persons       Int               @default(1)
-  preferredDate String?
-  comment       String?           @db.Text
-  status        ApplicationStatus @default(NEW)
-  managerId     String?
-  utmSource     String?
-  utmMedium     String?
-  utmCampaign   String?
-  isWaitlist    Boolean           @default(false)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  departureDate DateTime
+  status        DepartureStatus @default(OPEN)
+  note          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  client    Client    @relation(fields: [clientId], references: [id])
-  tour      Tour      @relation(fields: [tourId], references: [id])
-  tourDate  TourDate? @relation(fields: [tourDateId], references: [id])
-  manager   User?     @relation(fields: [managerId], references: [id])
+  tour         Tour          @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  applications Application[]
+  groups       Group[]
+  reviews      Review[]
+
+  @@map("departures")
+}
+
+// ─── 6. Groups (автобус/группа внутри выезда, создаётся менеджером) ─────────
+model Group {
+  id          String   @id @default(cuid())
+  departureId String
+  name        String   // "Автобус 1", "Группа А"
+  guideId     String?
+  driverId    String?
+  maxSeats    Int      @default(15)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  departure    Departure     @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  guide        Staff?        @relation("GroupGuide", fields: [guideId], references: [id])
+  driver       Staff?        @relation("GroupDriver", fields: [driverId], references: [id])
+  applications Application[]
+  expenses     Expense[]
+  guideTokens  GuideToken[]
+
+  @@map("groups")
+}
+
+// ─── 7. Applications ────────────────────────────────────────────────────────
+model Application {
+  id          String            @id @default(cuid())
+  clientId    String
+  tourId      String
+  departureId String?           // выезд (выбирается туристом на сайте)
+  groupId     String?           // автобус (назначается менеджером после набора)
+  persons     Int               @default(1)
+  comment     String?           @db.Text
+  status      ApplicationStatus @default(NEW)
+  managerId   String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  isWaitlist  Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  client    Client     @relation(fields: [clientId], references: [id])
+  tour      Tour       @relation(fields: [tourId], references: [id])
+  departure Departure? @relation(fields: [departureId], references: [id])
+  group     Group?     @relation(fields: [groupId], references: [id])
+  manager   User?      @relation(fields: [managerId], references: [id])
   booking   Booking?
   reminders Reminder[]
 
   @@map("applications")
 }
 
-// ─── 6. Bookings ────────────────────────────────────────────────────────────
+// ─── 8. Bookings ────────────────────────────────────────────────────────────
 model Booking {
   id                String        @id @default(cuid())
   applicationId     String        @unique
@@ -180,7 +230,7 @@ model Booking {
   @@map("bookings")
 }
 
-// ─── 7. Price History ───────────────────────────────────────────────────────
+// ─── 9. Price History ───────────────────────────────────────────────────────
 model PriceHistory {
   id        String   @id @default(cuid())
   bookingId String
@@ -195,36 +245,36 @@ model PriceHistory {
   @@map("price_history")
 }
 
-// ─── 8. Expenses ────────────────────────────────────────────────────────────
+// ─── 10. Expenses (расходы на уровне группы/автобуса) ───────────────────────
 model Expense {
-  id         String          @id @default(cuid())
-  tourDateId String
-  category   ExpenseCategory
-  amount     Int
-  currency   Currency        @default(KGS)
-  note       String?
-  createdAt  DateTime        @default(now())
+  id        String          @id @default(cuid())
+  groupId   String
+  category  ExpenseCategory
+  amount    Int
+  currency  Currency        @default(KGS)
+  note      String?
+  createdAt DateTime        @default(now())
 
-  tourDate TourDate @relation(fields: [tourDateId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
 }
 
-// ─── 9. Staff (guides & drivers) ────────────────────────────────────────────
+// ─── 11. Staff (guides & drivers) ───────────────────────────────────────────
 model Staff {
-  id             String  @id @default(cuid())
+  id             String @id @default(cuid())
   name           String
   role           String
   phone          String?
   telegramChatId String?
 
-  guideTourDates  TourDate[] @relation("TourDateGuide")
-  driverTourDates TourDate[] @relation("TourDateDriver")
+  guideGroups  Group[] @relation("GroupGuide")
+  driverGroups Group[] @relation("GroupDriver")
 
   @@map("staff")
 }
 
-// ─── 10. Reminders ──────────────────────────────────────────────────────────
+// ─── 12. Reminders ──────────────────────────────────────────────────────────
 model Reminder {
   id            String   @id @default(cuid())
   applicationId String
@@ -240,32 +290,32 @@ model Reminder {
   @@map("reminders")
 }
 
-// ─── 11. Reviews ────────────────────────────────────────────────────────────
+// ─── 13. Reviews ────────────────────────────────────────────────────────────
 model Review {
   id          String   @id @default(cuid())
   clientId    String
-  tourDateId  String
+  departureId String
   rating      Int
   text        String?  @db.Text
   isPublished Boolean  @default(false)
   token       String   @unique @default(cuid())
   createdAt   DateTime @default(now())
 
-  client   Client   @relation(fields: [clientId], references: [id])
-  tourDate TourDate @relation(fields: [tourDateId], references: [id])
+  client    Client    @relation(fields: [clientId], references: [id])
+  departure Departure @relation(fields: [departureId], references: [id])
 
   @@map("reviews")
 }
 
-// ─── 12. Guide Tokens ───────────────────────────────────────────────────────
+// ─── 14. Guide Tokens (токен для страницы гида, на уровне группы) ───────────
 model GuideToken {
-  id         String   @id @default(cuid())
-  tourDateId String
-  token      String   @unique @default(cuid())
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  groupId   String
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-  tourDate TourDate @relation(fields: [tourDateId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("guide_tokens")
 }

@@ -8,7 +8,6 @@ export type KanbanApplication = {
   id: string;
   status: string;
   persons: number;
-  preferredDate: string | null;
   utmSource: string | null;
   createdAt: string;
   client: { id: string; name: string; whatsapp: string; country: string | null };
@@ -104,15 +103,9 @@ export default function KanbanCard({ app }: { app: KanbanApplication }) {
       {/* Tour */}
       <p className="text-xs text-gray-500 truncate mb-1.5">{app.tour.title}</p>
 
-      {/* Persons + date */}
+      {/* Persons */}
       <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
         <span>{app.persons} чел.</span>
-        {app.preferredDate && (
-          <>
-            <span>·</span>
-            <span>{app.preferredDate}</span>
-          </>
-        )}
       </div>
 
       {/* Financials */}

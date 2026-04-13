@@ -27,9 +27,9 @@ interface Tour {
   duration?: number | null;
   tourType?: string | null;
   images?: unknown;
-  tourDates: {
-    maxSeats: number;
-    _count?: { applications: number };
+  departures?: {
+    id: string;
+    departureDate: Date | string;
   }[];
 }
 

@@ -15,15 +15,19 @@ export default async function GuidePage({
   const guideToken = await prisma.guideToken.findUnique({
     where: { token: params.token },
     include: {
-      tourDate: {
+      group: {
         include: {
-          tour: {
-            select: {
-              title: true,
-              description: true,
-              itinerary: true,
-              included: true,
-              notIncluded: true,
+          departure: {
+            include: {
+              tour: {
+                select: {
+                  title: true,
+                  description: true,
+                  itinerary: true,
+                  included: true,
+                  notIncluded: true,
+                },
+              },
             },
           },
           guide: { select: { name: true, phone: true } },
@@ -72,8 +76,9 @@ export default async function GuidePage({
     );
   }
 
-  const td = guideToken.tourDate;
-  const tour = td.tour;
+  const group = guideToken.group;
+  const departure = group.departure;
+  const tour = departure.tour;
 
   // Parse itinerary JSON
   type ItineraryDay = { day: number; title: string; description: string };
@@ -86,7 +91,7 @@ export default async function GuidePage({
     itinerary = [];
   }
 
-  const participants = td.applications;
+  const participants = group.applications;
   const totalParticipants = participants.reduce((sum, a) => sum + a.persons, 0);
 
   return (
@@ -94,13 +99,13 @@ export default async function GuidePage({
       {/* Header */}
       <header className="bg-[#1B4FD8] text-white">
         <div className="max-w-2xl mx-auto px-4 py-5">
-          <p className="text-sm text-blue-200 mb-1">Страница гида</p>
+          <p className="text-sm text-blue-200 mb-1">Страница гида · {group.name}</p>
           <h1 className="text-2xl font-bold">{tour.title}</h1>
           <div className="flex flex-wrap gap-4 mt-3 text-sm text-blue-100">
             <span>
               📅{" "}
-              {formatDate(td.startDate, { day: "numeric", month: "long" })} —{" "}
-              {formatDate(td.endDate, {
+              {formatDate(new Date(departure.departureDate), {
+                weekday: "long",
                 day: "numeric",
                 month: "long",
                 year: "numeric",
@@ -113,40 +118,40 @@ export default async function GuidePage({
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {/* Staff */}
-        {(td.guide || td.driver) && (
+        {(group.guide || group.driver) && (
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
               Команда
             </h2>
             <div className="grid grid-cols-2 gap-3">
-              {td.guide && (
+              {group.guide && (
                 <div className="bg-blue-50 rounded-lg p-3">
                   <p className="text-xs text-blue-500 font-medium">Гид</p>
                   <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                    {td.guide.name}
+                    {group.guide.name}
                   </p>
-                  {td.guide.phone && (
+                  {group.guide.phone && (
                     <a
-                      href={`tel:${td.guide.phone}`}
+                      href={`tel:${group.guide.phone}`}
                       className="text-xs text-blue-600 hover:underline"
                     >
-                      {td.guide.phone}
+                      {group.guide.phone}
                     </a>
                   )}
                 </div>
               )}
-              {td.driver && (
+              {group.driver && (
                 <div className="bg-green-50 rounded-lg p-3">
                   <p className="text-xs text-green-500 font-medium">Водитель</p>
                   <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                    {td.driver.name}
+                    {group.driver.name}
                   </p>
-                  {td.driver.phone && (
+                  {group.driver.phone && (
                     <a
-                      href={`tel:${td.driver.phone}`}
+                      href={`tel:${group.driver.phone}`}
                       className="text-xs text-green-600 hover:underline"
                     >
-                      {td.driver.phone}
+                      {group.driver.phone}
                     </a>
                   )}
                 </div>

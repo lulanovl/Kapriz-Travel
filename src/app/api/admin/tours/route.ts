@@ -27,7 +27,7 @@ export async function GET() {
   const tours = await prisma.tour.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { tourDates: true, applications: true } },
+      _count: { select: { departures: true, applications: true } },
     },
   });
 

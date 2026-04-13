@@ -25,9 +25,9 @@ interface TourCardProps {
     duration?: number | null;
     tourType?: string | null;
     images?: unknown;
-    tourDates?: {
-      maxSeats: number;
-      _count?: { applications: number };
+    departures?: {
+      id: string;
+      departureDate: Date | string;
     }[];
   };
   index?: number;
@@ -37,20 +37,8 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
   const images = Array.isArray(tour.images) ? tour.images as string[] : [];
   const imageUrl = images[0] ?? PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length];
 
-  const nextDate = tour.tourDates?.[0];
-  const booked = nextDate?._count?.applications ?? 0;
-  const maxSeats = nextDate?.maxSeats ?? 10;
-  const remaining = maxSeats - booked;
-
-  let availColor = "text-green-400";
-  let availText = `Мест: ${remaining}`;
-  if (remaining <= 0) {
-    availColor = "text-red-400";
-    availText = "Мест нет";
-  } else if (remaining <= 2) {
-    availColor = "text-yellow-400";
-    availText = `Последние ${remaining} места`;
-  }
+  const nextDeparture = tour.departures?.[0];
+  const hasUpcoming = !!nextDeparture;
 
   return (
     <Link
@@ -94,9 +82,9 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
             </div>
           </div>
 
-          {nextDate && (
-            <div className={`text-xs font-heading font-700 uppercase tracking-wide ${availColor}`}>
-              {availText}
+          {hasUpcoming && (
+            <div className="text-xs font-heading font-700 uppercase tracking-wide text-green-400">
+              Есть даты
             </div>
           )}
         </div>

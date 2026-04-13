@@ -2,15 +2,15 @@
 
 import { useState, useMemo } from "react";
 
-type TourDate = {
+type Departure = {
   id: string;
-  startDate: string;
-  endDate: string;
-  maxSeats: number;
+  departureDate: string;
   tour: { id: string; title: string };
+  applicationsCount: number;
+  maxSeats: number;
   guide: { name: string } | null;
   driver: { name: string } | null;
-  applicationsCount: number;
+  groupCount: number;
 };
 
 const WEEKDAYS_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -21,14 +21,13 @@ const MONTHS_RU = [
 const WEEKDAYS_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
 
 function toLocalDateStr(d: Date) {
-  // YYYY-MM-DD in local time
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function startOfWeek(date: Date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d;
@@ -46,63 +45,58 @@ function isSameDay(a: Date, b: Date) {
     a.getDate() === b.getDate();
 }
 
-// Returns true if tourDate spans the given calendar day
-function tourOnDay(td: TourDate, day: Date) {
-  const start = new Date(td.startDate);
-  const end = new Date(td.endDate);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(23, 59, 59, 999);
-  return day >= start && day <= end;
+function depOnDay(dep: Departure, day: Date) {
+  const depDate = new Date(dep.departureDate);
+  return isSameDay(depDate, day);
 }
 
-function TourCard({ td, compact = false }: { td: TourDate; compact?: boolean }) {
-  const free = td.maxSeats - td.applicationsCount;
-  const pct = td.maxSeats > 0 ? Math.round((td.applicationsCount / td.maxSeats) * 100) : 0;
+function DepartureCard({ dep, compact = false }: { dep: Departure; compact?: boolean }) {
+  const hasGroups = dep.groupCount > 0;
+  const pct = hasGroups && dep.maxSeats > 0
+    ? Math.round((dep.applicationsCount / dep.maxSeats) * 100)
+    : 0;
   const barColor = pct >= 90 ? "bg-red-500" : pct >= 60 ? "bg-yellow-500" : "bg-green-500";
-  const freeColor = free <= 0 ? "text-red-600" : free <= 3 ? "text-yellow-600" : "text-green-600";
-
-  const start = new Date(td.startDate);
-  const end = new Date(td.endDate);
-  const dateStr = start.toLocaleDateString("ru", { day: "numeric", month: "short" }) +
-    (isSameDay(start, end) ? "" : " — " + end.toLocaleDateString("ru", { day: "numeric", month: "short" }));
+  const countColor = dep.applicationsCount === 0 ? "text-gray-400" : pct >= 90 ? "text-red-600" : "text-green-600";
 
   return (
     <a
-      href={`/admin/tours/${td.tour.id}`}
+      href={`/admin/departures/${dep.id}`}
       className="block bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
     >
-      {/* Title */}
       <p className="font-semibold text-gray-900 text-xs leading-snug mb-1 line-clamp-2">
-        {td.tour.title}
+        {dep.tour.title}
       </p>
 
-      {/* Date (only in day view) */}
       {!compact && (
-        <p className="text-xs text-gray-400 mb-1.5">{dateStr}</p>
+        <p className="text-xs text-gray-400 mb-1.5">
+          {new Date(dep.departureDate).toLocaleDateString("ru", {
+            weekday: "short", day: "numeric", month: "short",
+          })}
+        </p>
       )}
 
-      {/* Seats */}
-      <div className={`text-xs font-semibold ${freeColor} mb-1`}>
-        {td.applicationsCount}/{td.maxSeats} чел.
-        {free <= 0 ? " · полный" : ` · св. ${free}`}
+      <div className={`text-xs font-semibold ${countColor} mb-1`}>
+        {dep.applicationsCount} чел.
+        {hasGroups && dep.maxSeats > 0 && ` / ${dep.maxSeats} мест`}
+        {dep.groupCount > 1 && ` · ${dep.groupCount} групп`}
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-gray-100 rounded-full overflow-hidden mb-1.5">
-        <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.min(pct, 100)}%` }} />
-      </div>
+      {hasGroups && dep.maxSeats > 0 && (
+        <div className="h-1 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+          <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.min(pct, 100)}%` }} />
+        </div>
+      )}
 
-      {/* Staff */}
-      {(td.guide || td.driver) && (
+      {(dep.guide || dep.driver) && (
         <div className="space-y-0.5">
-          {td.guide && (
+          {dep.guide && (
             <p className="text-xs text-gray-400 truncate">
-              <span className="text-gray-300">Гид: </span>{td.guide.name}
+              <span className="text-gray-300">Гид: </span>{dep.guide.name}
             </p>
           )}
-          {td.driver && (
+          {dep.driver && (
             <p className="text-xs text-gray-400 truncate">
-              <span className="text-gray-300">Вод: </span>{td.driver.name}
+              <span className="text-gray-300">Вод: </span>{dep.driver.name}
             </p>
           )}
         </div>
@@ -111,7 +105,7 @@ function TourCard({ td, compact = false }: { td: TourDate; compact?: boolean }) 
   );
 }
 
-export default function CalendarClient({ tourDates }: { tourDates: TourDate[] }) {
+export default function CalendarClient({ departures }: { departures: Departure[] }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -119,50 +113,37 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [calMonth, setCalMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
-  // Set of day strings that have tours — for dot indicators on calendar
-  const daysWithTours = useMemo(() => {
+  const daysWithDepartures = useMemo(() => {
     const set = new Set<string>();
-    tourDates.forEach((td) => {
-      const start = new Date(td.startDate);
-      const end = new Date(td.endDate);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
-      const cur = new Date(start);
-      while (cur <= end) {
-        set.add(toLocalDateStr(cur));
-        cur.setDate(cur.getDate() + 1);
-      }
+    departures.forEach((dep) => {
+      const d = new Date(dep.departureDate);
+      set.add(toLocalDateStr(d));
     });
     return set;
-  }, [tourDates]);
+  }, [departures]);
 
-  // Tours for selected day (day view)
-  const toursForDay = useMemo(() => {
-    return tourDates.filter((td) => tourOnDay(td, selectedDate));
-  }, [tourDates, selectedDate]);
+  const departuresForDay = useMemo(() => {
+    return departures.filter((dep) => depOnDay(dep, selectedDate));
+  }, [departures, selectedDate]);
 
-  // Tours grouped by day for week view
   const weekDays = useMemo(() => {
     const mon = startOfWeek(selectedDate);
     return Array.from({ length: 7 }, (_, i) => {
       const day = addDays(mon, i);
       return {
         date: day,
-        tours: tourDates.filter((td) => tourOnDay(td, day)),
+        deps: departures.filter((dep) => depOnDay(dep, day)),
       };
     });
-  }, [tourDates, selectedDate]);
+  }, [departures, selectedDate]);
 
-  // Build calendar grid for current month
   const calendarGrid = useMemo(() => {
     const year = calMonth.getFullYear();
     const month = calMonth.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
-    // Start from Monday of the week containing firstDay
     const gridStart = startOfWeek(firstDay);
-    // End at Sunday of the week containing lastDay
     const gridEndBase = new Date(lastDay);
     const endDow = gridEndBase.getDay();
     const endDiff = endDow === 0 ? 0 : 7 - endDow;
@@ -182,7 +163,6 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
 
   const selectDay = (day: Date) => {
     setSelectedDate(day);
-    // sync calendar month if needed
     if (day.getMonth() !== calMonth.getMonth() || day.getFullYear() !== calMonth.getFullYear()) {
       setCalMonth(new Date(day.getFullYear(), day.getMonth(), 1));
     }
@@ -200,7 +180,6 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
       {/* LEFT: mini calendar */}
       <div className="shrink-0 w-72">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          {/* Month nav */}
           <div className="flex items-center justify-between mb-3">
             <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,16 +196,12 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
             </button>
           </div>
 
-          {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
             {WEEKDAYS_SHORT.map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">
-                {d}
-              </div>
+              <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
             ))}
           </div>
 
-          {/* Day grid */}
           <div className="grid grid-cols-7 gap-y-0.5">
             {calendarGrid.map((day, i) => {
               const isCurrentMonth = day.getMonth() === calMonth.getMonth();
@@ -234,7 +209,7 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
               const isSelected = isSameDay(day, selectedDate);
               const isInSelectedWeek = view === "week" &&
                 weekDays.some((wd) => isSameDay(wd.date, day));
-              const hasTours = daysWithTours.has(toLocalDateStr(day));
+              const hasDeps = daysWithDepartures.has(toLocalDateStr(day));
 
               return (
                 <button
@@ -250,7 +225,7 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
                   `}
                 >
                   <span>{day.getDate()}</span>
-                  {hasTours && (
+                  {hasDeps && (
                     <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-blue-500"}`} />
                   )}
                 </button>
@@ -258,7 +233,6 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
             })}
           </div>
 
-          {/* Jump to today */}
           <button
             onClick={() => selectDay(today)}
             className="mt-3 w-full text-xs text-blue-600 hover:text-blue-800 py-1 rounded hover:bg-blue-50 transition-colors"
@@ -267,7 +241,6 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
           </button>
         </div>
 
-        {/* Legend */}
         <div className="mt-3 bg-white rounded-xl border border-gray-200 p-3 space-y-1.5">
           <p className="text-xs font-medium text-gray-500 mb-2">Заполненность</p>
           {[
@@ -285,7 +258,6 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
 
       {/* RIGHT: content */}
       <div className="flex-1 min-w-0">
-        {/* View toggle + label */}
         <div className="flex items-center justify-between mb-4">
           <div>
             {view === "day" ? (
@@ -302,9 +274,7 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
             <button
               onClick={() => setView("day")}
               className={`px-4 py-2 text-sm font-medium transition-colors ${
-                view === "day"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
+                view === "day" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
               }`}
             >
               День
@@ -312,9 +282,7 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
             <button
               onClick={() => setView("week")}
               className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200 ${
-                view === "week"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
+                view === "week" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
               }`}
             >
               Неделя
@@ -322,33 +290,30 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
           </div>
         </div>
 
-        {/* DAY VIEW */}
         {view === "day" && (
           <div>
-            {toursForDay.length === 0 ? (
+            {departuresForDay.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <p className="text-gray-400 text-sm">Туров в этот день нет</p>
+                <p className="text-gray-400 text-sm">Выездов в этот день нет</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {toursForDay.map((td) => (
-                  <TourCard key={td.id} td={td} />
+                {departuresForDay.map((dep) => (
+                  <DepartureCard key={dep.id} dep={dep} />
                 ))}
               </div>
             )}
           </div>
         )}
 
-        {/* WEEK VIEW */}
         {view === "week" && (
           <div className="grid grid-cols-7 gap-2">
-            {weekDays.map(({ date, tours }, i) => {
+            {weekDays.map(({ date, deps }, i) => {
               const isToday = isSameDay(date, today);
               const isSelected = isSameDay(date, selectedDate);
 
               return (
                 <div key={i} className="flex flex-col min-h-[120px]">
-                  {/* Day header */}
                   <button
                     onClick={() => {
                       setSelectedDate(date);
@@ -368,15 +333,14 @@ export default function CalendarClient({ tourDates }: { tourDates: TourDate[] })
                     </p>
                   </button>
 
-                  {/* Tour cards */}
                   <div className="flex-1 space-y-1.5">
-                    {tours.length === 0 ? (
+                    {deps.length === 0 ? (
                       <div className="h-full min-h-[60px] border border-dashed border-gray-200 rounded-lg flex items-center justify-center">
                         <span className="text-xs text-gray-300">—</span>
                       </div>
                     ) : (
-                      tours.map((td) => (
-                        <TourCard key={td.id} td={td} compact />
+                      deps.map((dep) => (
+                        <DepartureCard key={dep.id} dep={dep} compact />
                       ))
                     )}
                   </div>

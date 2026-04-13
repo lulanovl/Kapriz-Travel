@@ -38,7 +38,6 @@ export default async function ApplicationsPage() {
     id: a.id,
     status: a.status,
     persons: a.persons,
-    preferredDate: a.preferredDate ?? null,
     utmSource: a.utmSource ?? null,
     createdAt: a.createdAt.toISOString(),
     client: a.client,
