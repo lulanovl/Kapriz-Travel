@@ -1,12 +1,11 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 import ItineraryView from "./ItineraryView";
+import TourHeroCarousel from "./TourHeroCarousel";
 
 const PLACEHOLDER_IMAGES = [
   "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80",
@@ -62,57 +61,11 @@ export default async function TourPage({
 
   return (
     <div className="bg-white">
-      {/* Hero image */}
-      <div className="relative h-[55vh] sm:h-[65vh] bg-gray-900">
-        <Image
-          src={displayImages[0]}
-          alt={tour.title}
-          fill
-          className="object-cover opacity-80"
-          priority
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-        {/* Back button */}
-        <Link
-          href="/tours"
-          className="absolute top-6 left-6 flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-2 rounded-full text-sm font-heading font-700 hover:bg-white/20 transition-colors duration-200 cursor-pointer"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
-          </svg>
-          Все туры
-        </Link>
-
-        {/* Title overlay */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-8 pb-10 max-w-7xl mx-auto">
-          {tour.tourType && (
-            <span className="inline-block bg-brand-lime text-brand-blue-deeper text-xs font-heading font-800 uppercase tracking-widest px-3 py-1 rounded-full mb-3">
-              {tour.tourType === "day_trip" ? "Однодневный" :
-               tour.tourType === "cultural" ? "Культурный" :
-               tour.tourType === "adventure" ? "Приключения" :
-               tour.tourType === "trekking" ? "Треккинг" : tour.tourType}
-            </span>
-          )}
-          <h1 className="font-heading font-black text-white text-3xl sm:text-5xl uppercase leading-tight">
-            {tour.title}
-          </h1>
-        </div>
-      </div>
-
-      {/* Thumbnail strip */}
-      {displayImages.length > 1 && (
-        <div className="bg-gray-900 px-4 sm:px-8 pb-4">
-          <div className="max-w-7xl mx-auto flex gap-2 overflow-x-auto">
-            {displayImages.slice(1).map((img, i) => (
-              <div key={i} className="relative w-20 h-16 shrink-0 rounded-lg overflow-hidden opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
-                <Image src={img} alt={`${tour.title} ${i + 2}`} fill className="object-cover" sizes="80px" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <TourHeroCarousel
+        images={displayImages}
+        title={tour.title}
+        tourType={tour.tourType}
+      />
 
       {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
