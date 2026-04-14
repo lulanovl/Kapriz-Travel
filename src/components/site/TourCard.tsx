@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const TYPE_LABELS: Record<string, string> = {
   day_trip: "Однодневный",
@@ -46,6 +46,28 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const hasMultiple = allImages.length > 1;
 
+  // Touch swipe support
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        // swiped left → next
+        setCurrentIdx((i) => (i + 1) % allImages.length);
+      } else {
+        // swiped right → prev
+        setCurrentIdx((i) => (i - 1 + allImages.length) % allImages.length);
+      }
+    }
+    touchStartX.current = null;
+  };
+
   const prev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -67,8 +89,14 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
       className="group block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     >
       {/* Image carousel */}
-      <div className="relative h-52 overflow-hidden">
+      <div
+        className="relative h-52 overflow-hidden"
+        onTouchStart={hasMultiple ? handleTouchStart : undefined}
+        onTouchEnd={hasMultiple ? handleTouchEnd : undefined}
+      >
+        {/* key forces remount on index change so the image actually swaps */}
         <Image
+          key={currentIdx}
           src={allImages[currentIdx]}
           alt={tour.title}
           fill
@@ -95,30 +123,30 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
           </div>
         )}
 
-        {/* Carousel prev/next — only when multiple images */}
+        {/* Carousel prev/next — always visible on mobile, hover on desktop */}
         {hasMultiple && (
           <>
             <button
               onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center transition-opacity duration-200 hover:bg-black/70 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Предыдущее фото"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button
               onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center transition-opacity duration-200 hover:bg-black/70 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Следующее фото"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </button>
 
-            {/* Dot indicators */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {/* Dot indicators — always visible */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
               {allImages.map((_, i) => (
                 <button
                   key={i}
@@ -129,8 +157,8 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
                   }}
                   className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
                     i === currentIdx
-                      ? "bg-white scale-125"
-                      : "bg-white/50 hover:bg-white/75"
+                      ? "bg-white w-3"
+                      : "bg-white/60 hover:bg-white/90"
                   }`}
                   aria-label={`Фото ${i + 1}`}
                 />
