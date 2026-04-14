@@ -108,6 +108,19 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function handleWhatsappChange(raw: string) {
+    let v = raw;
+    // "0..." → "+996..."
+    if (v.startsWith("0")) {
+      v = "+996" + v.slice(1);
+    }
+    // "996..." (without leading +) → "+996..."
+    if (/^996/.test(v)) {
+      v = "+" + v;
+    }
+    set("whatsapp", v);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -144,8 +157,9 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     }
   }
 
+  // text-[16px] prevents iOS Safari from auto-zooming on input focus
   const inputClass =
-    "w-full px-4 py-3.5 border border-gray-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-colors duration-200 bg-white";
+    "w-full px-4 py-3.5 border border-gray-200 rounded-xl font-body text-[16px] focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-colors duration-200 bg-white";
   const labelClass =
     "block font-heading font-700 text-gray-700 text-xs uppercase tracking-wider mb-2";
 
@@ -160,7 +174,7 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
       {/* WhatsApp */}
       <div>
         <label htmlFor="whatsapp" className={labelClass}>Номер WhatsApp <span className="text-red-500">*</span></label>
-        <input id="whatsapp" type="tel" required value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="+996 700 000 000" className={inputClass} />
+        <input id="whatsapp" type="tel" required value={form.whatsapp} onChange={(e) => handleWhatsappChange(e.target.value)} placeholder="+996 700 000 000" className={inputClass} />
         <p className="text-gray-400 text-xs mt-1.5">На этот номер мы напишем в WhatsApp</p>
       </div>
 

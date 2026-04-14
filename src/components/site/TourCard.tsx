@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 
 const TYPE_LABELS: Record<string, string> = {
   day_trip: "Однодневный",
@@ -34,8 +37,26 @@ interface TourCardProps {
 }
 
 export default function TourCard({ tour, index = 0 }: TourCardProps) {
-  const images = Array.isArray(tour.images) ? tour.images as string[] : [];
-  const imageUrl = images[0] ?? PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length];
+  const rawImages = Array.isArray(tour.images) ? (tour.images as string[]) : [];
+  const allImages =
+    rawImages.length > 0
+      ? rawImages
+      : [PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length]];
+
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const hasMultiple = allImages.length > 1;
+
+  const prev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIdx((i) => (i - 1 + allImages.length) % allImages.length);
+  };
+
+  const next = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIdx((i) => (i + 1) % allImages.length);
+  };
 
   const nextDeparture = tour.departures?.[0];
   const hasUpcoming = !!nextDeparture;
@@ -45,26 +66,77 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
       href={`/tours/${tour.slug}`}
       className="group block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     >
-      {/* Image */}
+      {/* Image carousel */}
       <div className="relative h-52 overflow-hidden">
         <Image
-          src={imageUrl}
+          src={allImages[currentIdx]}
           alt={tour.title}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
+
         {/* Type badge */}
         {tour.tourType && (
           <div className="absolute top-3 left-3 bg-brand-blue/90 backdrop-blur-sm text-white text-xs font-heading font-700 uppercase tracking-wider px-3 py-1 rounded-full">
             {TYPE_LABELS[tour.tourType] ?? tour.tourType}
           </div>
         )}
+
         {/* Duration */}
         {tour.duration && (
           <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-heading font-600 px-3 py-1 rounded-full">
-            {tour.duration} {tour.duration === 1 ? "день" : tour.duration <= 4 ? "дня" : "дней"}
+            {tour.duration}{" "}
+            {tour.duration === 1
+              ? "день"
+              : tour.duration <= 4
+              ? "дня"
+              : "дней"}
           </div>
+        )}
+
+        {/* Carousel prev/next — only when multiple images */}
+        {hasMultiple && (
+          <>
+            <button
+              onClick={prev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
+              aria-label="Предыдущее фото"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70"
+              aria-label="Следующее фото"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Dot indicators */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {allImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCurrentIdx(i);
+                  }}
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                    i === currentIdx
+                      ? "bg-white scale-125"
+                      : "bg-white/50 hover:bg-white/75"
+                  }`}
+                  aria-label={`Фото ${i + 1}`}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -78,7 +150,8 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
           <div>
             <span className="text-xs text-gray-400 font-heading uppercase tracking-wider">от</span>
             <div className="font-heading font-900 text-brand-blue text-xl">
-              {tour.basePrice.toLocaleString("ru")} <span className="text-sm font-600">сом</span>
+              {tour.basePrice.toLocaleString("ru")}{" "}
+              <span className="text-sm font-600">сом</span>
             </div>
           </div>
 

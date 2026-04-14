@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import Providers from "./providers";
 import Analytics from "@/components/site/Analytics";
@@ -15,6 +15,14 @@ export const metadata: Metadata = {
   title: "Kapriz Travel — Туры по Кыргызстану и Центральной Азии",
   description:
     "Незабываемые туры по Кыргызстану, Казахстану и Узбекистану. Однодневные и многодневные туры от Kapriz Travel.",
+};
+
+// Prevents iOS Safari from auto-zooming on input focus without locking user zoom
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // interactiveWidget keeps the viewport stable when the keyboard appears
+  interactiveWidget: "resizes-visual",
 };
 
 export default function RootLayout({
