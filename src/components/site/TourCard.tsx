@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,15 +28,14 @@ interface TourCardProps {
     duration?: number | null;
     tourType?: string | null;
     images?: unknown;
-    departures?: {
-      id: string;
-      departureDate: Date | string;
-    }[];
+    departures?: { id: string; departureDate: Date | string }[];
   };
   index?: number;
 }
 
 export default function TourCard({ tour, index = 0 }: TourCardProps) {
+  const router = useRouter();
+
   const rawImages = Array.isArray(tour.images) ? (tour.images as string[]) : [];
   const allImages =
     rawImages.length > 0
@@ -46,98 +45,111 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const hasMultiple = allImages.length > 1;
 
-  // Touch swipe support
+  // Track touch start for swipe
   const touchStartX = useRef<number | null>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const goTo = (idx: number) => setCurrentIdx((idx + allImages.length) % allImages.length);
+
+  const prev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goTo(currentIdx - 1);
+  };
+
+  const next = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goTo(currentIdx + 1);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 40) {
-      if (diff > 0) {
-        // swiped left → next
-        setCurrentIdx((i) => (i + 1) % allImages.length);
-      } else {
-        // swiped right → prev
-        setCurrentIdx((i) => (i - 1 + allImages.length) % allImages.length);
-      }
+      goTo(diff > 0 ? currentIdx + 1 : currentIdx - 1);
     }
     touchStartX.current = null;
   };
 
-  const prev = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIdx((i) => (i - 1 + allImages.length) % allImages.length);
-  };
-
-  const next = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIdx((i) => (i + 1) % allImages.length);
-  };
-
-  const nextDeparture = tour.departures?.[0];
-  const hasUpcoming = !!nextDeparture;
+  const hasUpcoming = !!tour.departures?.[0];
 
   return (
-    <Link
-      href={`/tours/${tour.slug}`}
+    // Outer div handles navigation — no button-inside-anchor issue
+    <div
+      onClick={() => router.push(`/tours/${tour.slug}`)}
       className="group block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     >
-      {/* Image carousel */}
+      {/* ── Image strip carousel ── */}
       <div
         className="relative h-52 overflow-hidden"
-        onTouchStart={hasMultiple ? handleTouchStart : undefined}
-        onTouchEnd={hasMultiple ? handleTouchEnd : undefined}
+        onTouchStart={hasMultiple ? onTouchStart : undefined}
+        onTouchEnd={hasMultiple ? onTouchEnd : undefined}
       >
-        {/* key forces remount on index change so the image actually swaps */}
-        <Image
-          key={currentIdx}
-          src={allImages[currentIdx]}
-          alt={tour.title}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
+        {/*
+          Sliding strip: all images laid out side-by-side in a single row.
+          Translating X by -currentIdx * (100 / allImages.length) percent
+          reveals the correct image with a smooth CSS transition.
+        */}
+        <div
+          className="flex h-full transition-transform duration-300 ease-out will-change-transform"
+          style={{
+            width: `${allImages.length * 100}%`,
+            transform: `translateX(-${(currentIdx * 100) / allImages.length}%)`,
+          }}
+        >
+          {allImages.map((src, i) => (
+            <div
+              key={src + i}
+              className="relative h-full flex-shrink-0"
+              style={{ width: `${100 / allImages.length}%` }}
+            >
+              <Image
+                src={src}
+                alt={`${tour.title} — фото ${i + 1}`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                priority={i === 0}
+              />
+            </div>
+          ))}
+        </div>
 
         {/* Type badge */}
         {tour.tourType && (
-          <div className="absolute top-3 left-3 bg-brand-blue/90 backdrop-blur-sm text-white text-xs font-heading font-700 uppercase tracking-wider px-3 py-1 rounded-full">
+          <div className="absolute top-3 left-3 z-10 bg-brand-blue/90 backdrop-blur-sm text-white text-xs font-heading font-700 uppercase tracking-wider px-3 py-1 rounded-full pointer-events-none">
             {TYPE_LABELS[tour.tourType] ?? tour.tourType}
           </div>
         )}
 
         {/* Duration */}
         {tour.duration && (
-          <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-heading font-600 px-3 py-1 rounded-full">
+          <div className="absolute top-3 right-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs font-heading font-600 px-3 py-1 rounded-full pointer-events-none">
             {tour.duration}{" "}
-            {tour.duration === 1
-              ? "день"
-              : tour.duration <= 4
-              ? "дня"
-              : "дней"}
+            {tour.duration === 1 ? "день" : tour.duration <= 4 ? "дня" : "дней"}
           </div>
         )}
 
-        {/* Carousel prev/next — always visible on mobile, hover on desktop */}
+        {/* Prev / Next buttons — only when multiple images */}
         {hasMultiple && (
           <>
             <button
+              type="button"
               onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center transition-opacity duration-200 hover:bg-black/70 sm:opacity-0 sm:group-hover:opacity-100"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/75 transition-colors duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity"
               aria-label="Предыдущее фото"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+
             <button
+              type="button"
               onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center transition-opacity duration-200 hover:bg-black/70 sm:opacity-0 sm:group-hover:opacity-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/75 transition-colors duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity"
               aria-label="Следующее фото"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,20 +157,18 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
               </svg>
             </button>
 
-            {/* Dot indicators — always visible */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {/* Dot indicators */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 items-center">
               {allImages.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={(e) => {
-                    e.preventDefault();
                     e.stopPropagation();
-                    setCurrentIdx(i);
+                    goTo(i);
                   }}
-                  className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                    i === currentIdx
-                      ? "bg-white w-3"
-                      : "bg-white/60 hover:bg-white/90"
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === currentIdx ? "bg-white w-4" : "bg-white/55 w-1.5 hover:bg-white/80"
                   }`}
                   aria-label={`Фото ${i + 1}`}
                 />
@@ -168,7 +178,7 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
         )}
       </div>
 
-      {/* Content */}
+      {/* ── Card content ── */}
       <div className="p-5">
         <h3 className="font-heading font-800 text-gray-900 text-base leading-tight line-clamp-2 group-hover:text-brand-blue transition-colors duration-200">
           {tour.title}
@@ -197,6 +207,6 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
           </svg>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
