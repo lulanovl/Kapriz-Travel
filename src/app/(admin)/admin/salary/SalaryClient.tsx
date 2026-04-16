@@ -112,7 +112,11 @@ function formatPeriodLabel(view: "week" | "month", anchor: Date): string {
 
 function navigate(view: "week" | "month", anchor: Date, dir: -1 | 1): Date {
   const d = new Date(anchor);
-  view === "week" ? d.setDate(d.getDate() + dir * 7) : d.setMonth(d.getMonth() + dir);
+  if (view === "week") {
+    d.setDate(d.getDate() + dir * 7);
+  } else {
+    d.setMonth(d.getMonth() + dir);
+  }
   return d;
 }
 
