@@ -150,10 +150,11 @@ model Departure {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  tour         Tour          @relation(fields: [tourId], references: [id], onDelete: Cascade)
-  applications Application[]
-  groups       Group[]
-  reviews      Review[]
+  tour          Tour           @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  applications  Application[]
+  groups        Group[]
+  reviews       Review[]
+  extraExpenses ExtraExpense[]
 
   @@map("departures")
 }
@@ -307,7 +308,23 @@ model Review {
   @@map("reviews")
 }
 
-// ─── 14. Guide Tokens (токен для страницы гида, на уровне группы) ───────────
+// ─── 14. Extra Expenses (marketing/targeting costs per departure) ───────────
+// Финансист вводит расходы на рекламу/таргет, привязанные к конкретному выезду.
+// Вычитаются из чистой прибыли тура при расчёте зарплаты менеджеров.
+model ExtraExpense {
+  id          String   @id @default(cuid())
+  departureId String
+  amount      Int
+  currency    Currency @default(KGS)
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  departure Departure @relation(fields: [departureId], references: [id], onDelete: Cascade)
+
+  @@map("extra_expenses")
+}
+
+// ─── 15. Guide Tokens (токен для страницы гида, на уровне группы) ───────────
 model GuideToken {
   id        String   @id @default(cuid())
   groupId   String

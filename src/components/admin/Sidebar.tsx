@@ -14,6 +14,11 @@ const navItems = [
   { href: "/admin/reports", label: "Отчёты", icon: "📊" },
 ];
 
+// Visible to Admin, Senior Manager, Finance (not regular Manager)
+const financeItems = [
+  { href: "/admin/salary", label: "Зарплаты", icon: "💵" },
+];
+
 const adminOnlyItems = [
   { href: "/admin/staff", label: "Персонал", icon: "🧑‍💼" },
   { href: "/admin/users", label: "Пользователи", icon: "⚙️" },
@@ -25,6 +30,11 @@ export default function Sidebar() {
   const isAdmin =
     session?.user.role === "ADMIN" ||
     session?.user.role === "SENIOR_MANAGER";
+
+  const isFinanceOrAbove =
+    session?.user.role === "ADMIN" ||
+    session?.user.role === "SENIOR_MANAGER" ||
+    session?.user.role === "FINANCE";
 
   return (
     <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
@@ -56,6 +66,33 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {isFinanceOrAbove && (
+          <>
+            <div className="pt-4 pb-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider px-3">
+                Финансы
+              </p>
+            </div>
+            {financeItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </>
+        )}
 
         {isAdmin && (
           <>
