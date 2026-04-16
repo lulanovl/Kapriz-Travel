@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import ManagersReport from "./ManagersReport";
 
 export const dynamic = "force-dynamic";
 
@@ -38,60 +39,95 @@ export default async function ReportsPage() {
   const tourMap = Object.fromEntries(tours.map((t) => [t.id, t.title]));
 
   const STATUS_LABELS: Record<string, string> = {
-    NEW: "Новая", CONTACT: "Контакт", PROPOSAL: "КП", DEPOSIT: "Предоплата",
-    NO_SHOW: "Не явился", ON_TOUR: "В туре", FEEDBACK: "Отзыв", ARCHIVE: "Архив",
+    NEW: "Новая",
+    CONTACT: "Контакт",
+    PROPOSAL: "КП",
+    DEPOSIT: "Предоплата",
+    IN_BUS: "В автобусе",
+    NO_SHOW: "Не явился",
+    ON_TOUR: "В туре",
+    FEEDBACK: "Отзыв",
+    ARCHIVE: "Архив",
   };
+
+  const canSeeManagers = ["ADMIN", "SENIOR_MANAGER"].includes(session.user.role);
 
   return (
     <>
       <Header title="Отчёты" />
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-3 gap-6">
-          {/* By status */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">По статусам</h3>
-            <div className="space-y-2">
-              {byStatus.map((s) => (
-                <div key={s.status} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{STATUS_LABELS[s.status] ?? s.status}</span>
-                  <span className="font-semibold text-gray-900">{s._count.id}</span>
+      <div className="p-6 space-y-8">
+
+        {/* ── General stats ─────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            Общая статистика
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+            {/* By status */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">По статусам</h3>
+              <div className="space-y-2">
+                {byStatus.map((s) => (
+                  <div key={s.status} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{STATUS_LABELS[s.status] ?? s.status}</span>
+                    <span className="font-semibold text-gray-900">{s._count.id}</span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-gray-100 flex justify-between text-sm font-semibold">
+                  <span>Всего</span>
+                  <span>{totalApps}</span>
                 </div>
-              ))}
-              <div className="pt-2 border-t border-gray-100 flex justify-between text-sm font-semibold">
-                <span>Всего</span>
-                <span>{totalApps}</span>
+              </div>
+            </div>
+
+            {/* By source */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">По источникам</h3>
+              <div className="space-y-2">
+                {bySource.map((s) => (
+                  <div key={s.utmSource ?? "direct"} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{s.utmSource ?? "Прямой"}</span>
+                    <span className="font-semibold text-gray-900">{s._count.id}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top tours */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-4">Топ туров</h3>
+              <div className="space-y-2">
+                {topTours.map((t, i) => (
+                  <div key={t.tourId} className="flex justify-between text-sm">
+                    <span className="text-gray-600 truncate">
+                      {i + 1}. {tourMap[t.tourId] ?? "—"}
+                    </span>
+                    <span className="font-semibold text-gray-900 shrink-0 ml-2">
+                      {t._count.id}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-
-          {/* By source */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">По источникам</h3>
-            <div className="space-y-2">
-              {bySource.map((s) => (
-                <div key={s.utmSource ?? "direct"} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{s.utmSource ?? "Прямой"}</span>
-                  <span className="font-semibold text-gray-900">{s._count.id}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Top tours */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="text-sm font-semibold text-gray-800 mb-4">Топ туров</h3>
-            <div className="space-y-2">
-              {topTours.map((t, i) => (
-                <div key={t.tourId} className="flex justify-between text-sm">
-                  <span className="text-gray-600 truncate">
-                    {i + 1}. {tourMap[t.tourId] ?? "—"}
-                  </span>
-                  <span className="font-semibold text-gray-900 shrink-0 ml-2">{t._count.id}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
+
+        {/* ── Manager KPI ───────────────────────────────────────────────── */}
+        {canSeeManagers && (
+          <div>
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                KPI менеджеров — туристы
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Количество человек, записавшихся через каждого менеджера (статус «Предоплата» и выше)
+              </p>
+            </div>
+            <ManagersReport />
+          </div>
+        )}
+
       </div>
     </>
   );
