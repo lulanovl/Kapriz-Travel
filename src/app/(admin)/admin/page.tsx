@@ -67,13 +67,17 @@ export default async function DashboardPage() {
         prisma.application.count({
           where: {
             createdAt: { gte: today, lt: tomorrow },
-            ...(isManager ? { managerId: userId } : {}),
+            ...(isManager
+              ? { OR: [{ managerId: userId }, { managerId: null }] }
+              : {}),
           },
         }),
         prisma.application.count({
           where: {
             status: { in: ["CONTACT", "PROPOSAL", "DEPOSIT"] },
-            ...(isManager ? { managerId: userId } : {}),
+            ...(isManager
+              ? { OR: [{ managerId: userId }, { managerId: null }] }
+              : {}),
           },
         }),
         isManager ? Promise.resolve(0) : prisma.client.count(),
@@ -81,9 +85,9 @@ export default async function DashboardPage() {
           ? Promise.resolve(0)
           : prisma.tour.count({ where: { isActive: true } }),
         prisma.application.findMany({
-          where: {
-            ...(isManager ? { managerId: userId } : {}),
-          },
+          where: isManager
+            ? { OR: [{ managerId: userId }, { managerId: null }] }
+            : {},
           orderBy: { createdAt: "desc" },
           take: 8,
           include: {
