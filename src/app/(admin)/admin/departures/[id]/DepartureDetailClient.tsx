@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 interface Client { id: string; name: string; whatsapp: string; country: string | null }
-interface Booking { id: string; finalPrice: number; depositPaid: number; paymentStatus: string; currency: string }
+interface Booking { id: string; finalPrice: number; depositPaid: number; paymentStatus: string; currency: string; guidePaymentStatus: string }
 interface Application {
   id: string; persons: number; status: string;
   client: Client; booking: Booking | null;
@@ -716,6 +716,61 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                       ))}
                     </div>
                   )}
+
+                  {/* Financial summary per group */}
+                  {(() => {
+                    const grpExpenses = groupExpenses[group.id] ?? [];
+                    const grpExpTotal = grpExpenses.reduce((s, e) => s + e.amount, 0);
+                    const activeApps = group.applications.filter(
+                      (a) => a.booking?.guidePaymentStatus !== "NO_SHOW"
+                    );
+                    const remainder = activeApps.reduce(
+                      (s, a) => s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),
+                      0
+                    );
+                    const shortfall = grpExpTotal > 0 ? Math.max(0, grpExpTotal - remainder) : 0;
+                    const surplus = grpExpTotal > 0 ? Math.max(0, remainder - grpExpTotal) : 0;
+                    const noShowCount = group.applications.filter(
+                      (a) => a.booking?.guidePaymentStatus === "NO_SHOW"
+                    ).length;
+
+                    if (grpExpTotal === 0 && remainder === 0) return null;
+
+                    return (
+                      <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 flex items-center gap-4 flex-wrap text-xs">
+                        <div className="text-gray-500">
+                          <span className="font-medium text-gray-700">Остатки гиду:</span>{" "}
+                          <span className="text-gray-800">{remainder.toLocaleString("ru")} сом</span>
+                        </div>
+                        {grpExpTotal > 0 && (
+                          <div className="text-gray-500">
+                            <span className="font-medium text-gray-700">Расходы:</span>{" "}
+                            <span className="text-orange-700">{grpExpTotal.toLocaleString("ru")} сом</span>
+                          </div>
+                        )}
+                        {noShowCount > 0 && (
+                          <div className="text-red-400">
+                            {noShowCount} не явились
+                          </div>
+                        )}
+                        {shortfall > 0 && (
+                          <div className="ml-auto bg-red-100 border border-red-200 rounded-lg px-3 py-1.5 text-center">
+                            <span className="text-red-500 font-medium">Перевести гиду: </span>
+                            <span className="text-red-700 font-bold">{shortfall.toLocaleString("ru")} сом</span>
+                          </div>
+                        )}
+                        {surplus > 0 && (
+                          <div className="ml-auto bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-1.5 text-center">
+                            <span className="text-emerald-600 font-medium">Получить от гида: </span>
+                            <span className="text-emerald-700 font-bold">{surplus.toLocaleString("ru")} сом</span>
+                          </div>
+                        )}
+                        {grpExpTotal > 0 && shortfall === 0 && surplus === 0 && (
+                          <div className="ml-auto text-gray-400 font-medium">Баланс в порядке</div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Expenses section */}
                   <div className="border-t border-gray-100">

@@ -36,27 +36,36 @@ export async function PATCH(
     return NextResponse.json({ error: "Application not in this group" }, { status: 403 });
   }
 
-  // Update booking's guidePaymentStatus
+  // Update booking's guidePaymentStatus, and sync paymentStatus when fully paid
   await prisma.booking.update({
     where: { applicationId },
-    data: { guidePaymentStatus: status },
+    data: {
+      guidePaymentStatus: status,
+      // PAID = tourist paid balance to guide
+      // TRANSFERRED = tourist paid balance directly to manager
+      // Both mean the full payment is complete
+      ...(status === "PAID" || status === "TRANSFERRED"
+        ? { paymentStatus: "PAID" }
+        : status === "PENDING"
+        ? { paymentStatus: "PARTIAL" }
+        : {}),
+    },
   });
 
   // Sync application status based on guide payment status
   if (status === "NO_SHOW") {
-    // Tourist didn't show up
     await prisma.application.update({
       where: { id: applicationId },
       data: { status: "NO_SHOW" },
     });
-  } else if (status === "PAID") {
-    // Tourist showed up and paid — move to ON_TOUR
+  } else if (status === "PAID" || status === "TRANSFERRED") {
+    // Tourist paid — move to ON_TOUR
     await prisma.application.update({
       where: { id: applicationId },
       data: { status: "ON_TOUR" },
     });
   } else if (application.status === "NO_SHOW") {
-    // Guide un-marked NO_SHOW (set to PENDING or TRANSFERRED) — revert to IN_BUS
+    // Guide un-marked NO_SHOW — revert to IN_BUS
     await prisma.application.update({
       where: { id: applicationId },
       data: { status: "IN_BUS" },
