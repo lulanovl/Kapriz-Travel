@@ -80,14 +80,10 @@ export default async function FinancePage() {
 
     // Не явились — их остатки не идут гиду
     const noShowApps = allApps.filter(
-      (a) =>
-        a.booking?.guidePaymentStatus === "NO_SHOW" ||
-        a.booking?.paymentStatus === "NO_SHOW"
+      (a) => a.booking?.guidePaymentStatus === "NO_SHOW"
     );
     const activeApps = allApps.filter(
-      (a) =>
-        a.booking?.guidePaymentStatus !== "NO_SHOW" &&
-        a.booking?.paymentStatus !== "NO_SHOW"
+      (a) => a.booking?.guidePaymentStatus !== "NO_SHOW"
     );
 
     const deposits = allApps.reduce(
