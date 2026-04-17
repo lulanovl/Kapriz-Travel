@@ -43,7 +43,7 @@ export default async function DeparturePage({ params }: { params: { id: string }
         include: {
           client: { select: { id: true, name: true, whatsapp: true, country: true } },
           booking: {
-            select: { id: true, finalPrice: true, depositPaid: true, paymentStatus: true, currency: true },
+            select: { id: true, finalPrice: true, depositPaid: true, paymentStatus: true, currency: true, guidePaymentStatus: true },
           },
           manager: { select: { id: true, name: true } },
         },
