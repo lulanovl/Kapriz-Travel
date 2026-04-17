@@ -49,6 +49,10 @@ export default async function GuidePage({
                   guidePaymentStatus: true,
                 },
               },
+              companions: {
+                select: { id: true, name: true, whatsapp: true },
+                orderBy: { createdAt: "asc" },
+              },
             },
             orderBy: { createdAt: "asc" },
           },
@@ -107,6 +111,7 @@ export default async function GuidePage({
           guidePaymentStatus: a.booking.guidePaymentStatus as "PENDING" | "PAID" | "TRANSFERRED" | "NO_SHOW",
         }
       : null,
+    companions: a.companions,
   }));
 
   return (

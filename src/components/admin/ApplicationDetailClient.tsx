@@ -41,6 +41,12 @@ type Reminder = {
   user: { id: string; name: string };
 };
 
+type Companion = {
+  id: string;
+  name: string;
+  whatsapp: string | null;
+};
+
 type ApplicationData = {
   id: string;
   status: string;
@@ -84,6 +90,7 @@ type ApplicationData = {
     priceHistory: PriceHistoryItem[];
   } | null;
   reminders: Reminder[];
+  companions: Companion[];
   managers: { id: string; name: string }[];
   tourDepartures: { id: string; departureDate: string }[];
   currentUserId: string;
@@ -125,11 +132,43 @@ export default function ApplicationDetailClient({
 
   const [departureId, setDepartureId] = useState(data.departure?.id ?? "");
 
+  // Companions
+  const [companions, setCompanions] = useState<Companion[]>(data.companions);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [addingCompanion, setAddingCompanion] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const currentStatus = STATUSES.find((s) => s.id === status);
   const phone = data.client.whatsapp.replace(/\D/g, "");
   const balance = finalPrice - depositPaid;
   const calculatedPrice = data.tour.basePrice * data.persons;
   const priceMatchesCalc = Math.abs(finalPrice - calculatedPrice) < 1;
+
+  const handleAddCompanion = async () => {
+    if (!newName.trim()) return;
+    setAddingCompanion(true);
+    const res = await fetch(`/api/admin/applications/${data.id}/companions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim(), whatsapp: newPhone.trim() || null }),
+    });
+    setAddingCompanion(false);
+    if (res.ok) {
+      const created = await res.json();
+      setCompanions((prev) => [...prev, created]);
+      setNewName("");
+      setNewPhone("");
+      setShowAddForm(false);
+    }
+  };
+
+  const handleDeleteCompanion = async (id: string) => {
+    const res = await fetch(`/api/admin/companions/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setCompanions((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
 
   const handleConfirm = async () => {
     setActionLoading(true);
@@ -614,6 +653,88 @@ export default function ApplicationDetailClient({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Companions */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-base font-semibold text-gray-800">Попутчики</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {companions.length} из {data.persons} чел.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddForm((v) => !v)}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {showAddForm ? "Отмена" : "+ Добавить"}
+            </button>
+          </div>
+
+          {/* Add form */}
+          {showAddForm && (
+            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100 space-y-2">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Имя и фамилия *"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="tel"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="WhatsApp (необязательно)"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleAddCompanion}
+                disabled={addingCompanion || !newName.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+              >
+                {addingCompanion ? "Сохраняю..." : "Добавить попутчика"}
+              </button>
+            </div>
+          )}
+
+          {/* List */}
+          {companions.length === 0 ? (
+            <p className="text-sm text-gray-400">Попутчики не добавлены</p>
+          ) : (
+            <div className="space-y-2">
+              {companions.map((c) => {
+                const cPhone = c.whatsapp?.replace(/\D/g, "") ?? "";
+                return (
+                  <div key={c.id} className="flex items-center gap-2 group">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+                      {c.whatsapp && (
+                        <a
+                          href={`https://wa.me/${cPhone}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-green-600 hover:underline"
+                        >
+                          {c.whatsapp}
+                        </a>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCompanion(c.id)}
+                      className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                      title="Удалить"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Tour info */}

@@ -198,15 +198,29 @@ model Application {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  client    Client     @relation(fields: [clientId], references: [id])
-  tour      Tour       @relation(fields: [tourId], references: [id])
-  departure Departure? @relation(fields: [departureId], references: [id])
-  group     Group?     @relation(fields: [groupId], references: [id])
-  manager   User?      @relation(fields: [managerId], references: [id])
-  booking   Booking?
-  reminders Reminder[]
+  client     Client      @relation(fields: [clientId], references: [id])
+  tour       Tour        @relation(fields: [tourId], references: [id])
+  departure  Departure?  @relation(fields: [departureId], references: [id])
+  group      Group?      @relation(fields: [groupId], references: [id])
+  manager    User?       @relation(fields: [managerId], references: [id])
+  booking    Booking?
+  reminders  Reminder[]
+  companions Companion[]
 
   @@map("applications")
+}
+
+// ─── 7b. Companions (попутчики в заявке) ────────────────────────────────────
+model Companion {
+  id            String   @id @default(cuid())
+  applicationId String
+  name          String
+  whatsapp      String?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("companions")
 }
 
 // ─── 8. Bookings ────────────────────────────────────────────────────────────

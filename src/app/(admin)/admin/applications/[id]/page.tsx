@@ -47,6 +47,9 @@ export default async function ApplicationDetailPage({
         orderBy: { dueAt: "asc" },
         include: { user: { select: { id: true, name: true } } },
       },
+      companions: {
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -139,6 +142,11 @@ export default async function ApplicationDetailPage({
       dueAt: r.dueAt.toISOString(),
       isDone: r.isDone,
       user: r.user,
+    })),
+    companions: application.companions.map((c) => ({
+      id: c.id,
+      name: c.name,
+      whatsapp: c.whatsapp ?? null,
     })),
     managers,
     tourDepartures: tourDepartures.map((d) => ({

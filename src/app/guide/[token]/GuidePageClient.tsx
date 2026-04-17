@@ -15,6 +15,7 @@ type Participant = {
     paymentStatus: string;
     guidePaymentStatus: GuidePaymentStatus;
   } | null;
+  companions: { id: string; name: string; whatsapp: string | null }[];
 };
 
 type Expense = {
@@ -222,6 +223,29 @@ export default function GuidePageClient({ token, participants: initial, expenses
                         >
                           {app.client.whatsapp}
                         </a>
+                        {/* Companions */}
+                        {app.companions.length > 0 && (
+                          <div className="mt-1.5 pl-2 border-l-2 border-gray-200 space-y-1">
+                            {app.companions.map((c) => {
+                              const cPhone = c.whatsapp?.replace(/\D/g, "") ?? "";
+                              return (
+                                <div key={c.id}>
+                                  <span className="text-xs text-gray-600 font-medium">{c.name}</span>
+                                  {c.whatsapp && (
+                                    <a
+                                      href={`https://wa.me/${cPhone}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block text-xs text-green-500 hover:underline"
+                                    >
+                                      {c.whatsapp}
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
 
