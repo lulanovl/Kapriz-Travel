@@ -63,7 +63,7 @@ export default async function FinancePage() {
     expenses: number;     // расходы по туру
     shortfall: number;    // нехватка → финансист переводит гиду (expenses - remainder)
     surplus: number;      // излишек → гид возвращает финансисту (remainder - expenses)
-    action: "TRANSFER" | "RECEIVE" | "OK" | "NO_EXPENSES";
+    action: "TRANSFER" | "RECEIVE" | "BOTH" | "OK" | "NO_EXPENSES";
     currency: string;
     noShowCount: number;
     noShowDeposits: number;
@@ -78,21 +78,12 @@ export default async function FinancePage() {
 
     const expenses = allExpenses.reduce((s, e) => s + e.amount, 0);
 
-    // Не явились — их остатки не идут гиду
     const noShowApps = allApps.filter(
       (a) => a.booking?.guidePaymentStatus === "NO_SHOW"
-    );
-    const activeApps = allApps.filter(
-      (a) => a.booking?.guidePaymentStatus !== "NO_SHOW"
     );
 
     const deposits = allApps.reduce(
       (s, a) => s + (a.booking?.depositPaid ?? 0),
-      0
-    );
-    const remainder = activeApps.reduce(
-      (s, a) =>
-        s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),
       0
     );
     const noShowDeposits = noShowApps.reduce(
@@ -100,12 +91,43 @@ export default async function FinancePage() {
       0
     );
 
-    const shortfall = expenses > 0 ? Math.max(0, expenses - remainder) : 0;
-    const surplus = expenses > 0 ? Math.max(0, remainder - expenses) : 0;
+    // Считаем остаток/нехватку PER GROUP — иначе излишек одного буса
+    // гасит нехватку другого и итоговые суммы врут
+    let shortfall = 0;
+    let surplus = 0;
+    let remainder = 0;
+
+    for (const group of dep.groups) {
+      const grpExpenses = group.expenses.reduce((s, e) => s + e.amount, 0);
+      const grpActiveApps = group.applications.filter(
+        (a) => a.booking?.guidePaymentStatus !== "NO_SHOW"
+      );
+      const grpRemainder = grpActiveApps.reduce(
+        (s, a) =>
+          s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),
+        0
+      );
+      remainder += grpRemainder;
+      if (grpExpenses > 0) {
+        shortfall += Math.max(0, grpExpenses - grpRemainder);
+        surplus += Math.max(0, grpRemainder - grpExpenses);
+      }
+    }
+
+    // Нераспределённые заявки (без группы) — остатки учитываем в remainder
+    const unassignedActive = dep.applications.filter(
+      (a) => a.booking?.guidePaymentStatus !== "NO_SHOW"
+    );
+    remainder += unassignedActive.reduce(
+      (s, a) =>
+        s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),
+      0
+    );
 
     let action: DepRow["action"] = "NO_EXPENSES";
     if (expenses > 0) {
-      if (shortfall > 0) action = "TRANSFER";
+      if (shortfall > 0 && surplus > 0) action = "BOTH";
+      else if (shortfall > 0) action = "TRANSFER";
       else if (surplus > 0) action = "RECEIVE";
       else action = "OK";
     }
@@ -132,13 +154,14 @@ export default async function FinancePage() {
     };
   });
 
-  // Split into sections
-  const transferRows = rows.filter((r) => r.action === "TRANSFER");
+  // BOTH → только в секции "Перевести" (первичная задача), но с двумя бейджами
+  const transferRows = rows.filter((r) => r.action === "TRANSFER" || r.action === "BOTH");
   const receiveRows = rows.filter((r) => r.action === "RECEIVE");
   const okRows = rows.filter((r) => r.action === "OK" || r.action === "NO_EXPENSES");
 
-  const totalToTransfer = transferRows.reduce((s, r) => s + r.shortfall, 0);
-  const totalToReceive = receiveRows.reduce((s, r) => s + r.surplus, 0);
+  // Суммируем shortfall и surplus независимо — не вычитаем одно из другого
+  const totalToTransfer = rows.reduce((s, r) => s + r.shortfall, 0);
+  const totalToReceive = rows.reduce((s, r) => s + r.surplus, 0);
   const totalDeposits = rows.reduce((s, r) => s + r.deposits, 0);
   const totalExpenses = rows.reduce((s, r) => s + r.expenses, 0);
 
@@ -270,7 +293,7 @@ type DepRow = {
   expenses: number;
   shortfall: number;
   surplus: number;
-  action: "TRANSFER" | "RECEIVE" | "OK" | "NO_EXPENSES";
+  action: "TRANSFER" | "RECEIVE" | "BOTH" | "OK" | "NO_EXPENSES";
   currency: string;
   noShowCount: number;
   noShowDeposits: number;
@@ -340,14 +363,14 @@ function DepartureRow({
           <p className="text-sm font-medium text-gray-700">{fmt(row.expenses)} сом</p>
         </div>
 
-        {/* Action badge */}
-        {row.action === "TRANSFER" && (
+        {/* Action badge(s) */}
+        {(row.action === "TRANSFER" || row.action === "BOTH") && (
           <div className="bg-red-100 border border-red-200 rounded-lg px-3 py-2 text-center min-w-[120px]">
             <p className="text-xs text-red-500 font-medium">Перевести гиду</p>
             <p className="text-base font-bold text-red-700">{fmt(row.shortfall)} сом</p>
           </div>
         )}
-        {row.action === "RECEIVE" && (
+        {(row.action === "RECEIVE" || row.action === "BOTH") && (
           <div className="bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-2 text-center min-w-[120px]">
             <p className="text-xs text-emerald-600 font-medium">Получить от гида</p>
             <p className="text-base font-bold text-emerald-700">{fmt(row.surplus)} сом</p>
