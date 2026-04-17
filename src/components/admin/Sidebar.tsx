@@ -37,15 +37,15 @@ export default function Sidebar() {
     session?.user.role === "FINANCE";
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
+    <aside className="w-64 h-screen sticky top-0 bg-gray-900 text-white flex flex-col shrink-0">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-700">
+      <div className="p-6 border-b border-gray-700 shrink-0">
         <h1 className="text-xl font-bold text-white">Tour CRM</h1>
         <p className="text-xs text-gray-400 mt-1">Управление турами</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             item.href === "/admin"

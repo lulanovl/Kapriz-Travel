@@ -26,7 +26,9 @@ export default async function ApplicationsPage() {
   });
 
   const applications = await prisma.application.findMany({
-    where: isManager ? { managerId: session.user.id } : undefined,
+    where: isManager
+      ? { OR: [{ managerId: session.user.id }, { managerId: null }] }
+      : undefined,
     orderBy: { createdAt: "desc" },
     include: {
       client: { select: { id: true, name: true, whatsapp: true, country: true } },
