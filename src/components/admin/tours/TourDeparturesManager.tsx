@@ -23,8 +23,8 @@ interface Props {
 }
 
 const STATUS_LABELS = {
-  OPEN: { label: "Открыт", cls: "bg-green-100 text-green-700" },
-  CLOSED: { label: "Закрыт", cls: "bg-gray-100 text-gray-500" },
+  OPEN: { label: "Активен", cls: "bg-green-100 text-green-700" },
+  CLOSED: { label: "Деактивирован", cls: "bg-gray-100 text-gray-500" },
   CANCELLED: { label: "Отменён", cls: "bg-red-100 text-red-600" },
 };
 
@@ -241,7 +241,7 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                         onClick={() => changeStatus(dep.id, "CLOSED")}
                         className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50"
                       >
-                        Закрыть
+                        Деактивировать
                       </button>
                     )}
                     {dep.status === "CLOSED" && (
@@ -249,7 +249,7 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                         onClick={() => changeStatus(dep.id, "OPEN")}
                         className="text-sm text-gray-500 hover:text-green-700 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-green-50"
                       >
-                        Открыть
+                        Активировать
                       </button>
                     )}
 
