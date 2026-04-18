@@ -79,20 +79,24 @@ export async function GET(req: NextRequest) {
     return { dep, revenue, tourExpenses, extraExpensesTotal, netProfit };
   });
 
-  // Distribute negative profits equally across profitable departures
+  // Distribute negative profits proportionally across profitable departures
   const totalNegativeLoss = baseResults.reduce(
     (sum, r) => (r.netProfit < 0 ? sum + Math.abs(r.netProfit) : sum),
     0
   );
-  const profitableCount = baseResults.filter((r) => r.netProfit > 0).length;
-  const lossPerProfitableDep = profitableCount > 0 ? totalNegativeLoss / profitableCount : 0;
+  const totalPositiveProfit = baseResults.reduce(
+    (sum, r) => (r.netProfit > 0 ? sum + r.netProfit : sum),
+    0
+  );
 
   // Second pass: build final results with adjusted profits
   const departureResults = baseResults.map(({ dep, revenue, tourExpenses, extraExpensesTotal, netProfit }) => {
-    // Profitable departures absorb losses from negative ones equally
-    const adjustedProfit = netProfit > 0
-      ? Math.max(0, netProfit - lossPerProfitableDep)
+    // Each profitable tour absorbs a share of loss proportional to its own profit.
+    // This ensures small tours are never over-charged relative to their size.
+    const absorbedLoss = netProfit > 0 && totalPositiveProfit > 0
+      ? (totalNegativeLoss * netProfit) / totalPositiveProfit
       : 0;
+    const adjustedProfit = Math.max(0, netProfit > 0 ? netProfit - absorbedLoss : 0);
 
     const totalPersons = dep.applications.reduce((sum, app) => sum + app.persons, 0);
 
@@ -160,7 +164,7 @@ export async function GET(req: NextRequest) {
       totalExtraExpenses: extraExpensesTotal,
       netProfit,
       adjustedProfit,
-      lossAdjustment: netProfit > 0 ? Math.round(lossPerProfitableDep) : 0,
+      lossAdjustment: netProfit > 0 ? Math.round(absorbedLoss) : 0,
       managerBreakdown: managerBreakdown.sort((a, b) => b.persons - a.persons),
     };
   });

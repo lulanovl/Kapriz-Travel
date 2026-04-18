@@ -335,6 +335,100 @@ describe("GET /api/admin/salary — loss distribution", () => {
     expect(data.totals.totalSalary).toBe(0);
   });
 
+  it("screenshot bug: small profitable tour keeps its salary (not clamped to 0)", async () => {
+    mockSession("ADMIN");
+    // Exactly the bug from the screenshot:
+    // Tour A: +70 000, Tour B: +4 880, Tour C: −60 000
+    // Equal split would give each −30 000 → Tour B goes to 0 (bug)
+    // Proportional split: totalPositive = 74 880
+    //   A absorbs: 60000 × (70000/74880) ≈ 56090 → adjusted ≈ 13910
+    //   B absorbs: 60000 × (4880/74880)  ≈  3910 → adjusted ≈   970
+    const tA = makeDeparture({
+      id: "dep-a",
+      title: "Большой тур",
+      applications: [makeApp({ id: "a1", finalPrice: 70000, persons: 7 })],
+    });
+    const tB = makeDeparture({
+      id: "dep-b",
+      title: "Конный тур",
+      applications: [makeApp({ id: "a2", finalPrice: 37380, persons: 3 })],
+      groupExpenses: [30400],
+      extraExpenses: [2100],
+    });
+    const tC = makeDeparture({
+      id: "dep-c",
+      title: "Убыточный",
+      applications: [makeApp({ id: "a3", finalPrice: 5000, persons: 1 })],
+      groupExpenses: [65000],
+    });
+
+    prismaMock.departure.findMany.mockResolvedValue([tA, tB, tC] as never);
+
+    const data = await (await GET(makeRequest(BASE_URL))).json();
+    const rA = data.departures.find((d: { id: string }) => d.id === "dep-a");
+    const rB = data.departures.find((d: { id: string }) => d.id === "dep-b");
+    const rC = data.departures.find((d: { id: string }) => d.id === "dep-c");
+
+    // Tour C is the loss source
+    expect(rC.netProfit).toBeLessThan(0);
+    expect(rC.adjustedProfit).toBe(0);
+    expect(rC.lossAdjustment).toBe(0);
+
+    // Tour B (small profit) must NOT be clamped to 0
+    expect(rB.adjustedProfit).toBeGreaterThan(0);
+
+    // Tour A absorbs significantly more than Tour B (proportional to profit size)
+    expect(rA.lossAdjustment).toBeGreaterThan(rB.lossAdjustment);
+
+    // Verify the sum of absorbed losses ≈ total loss (nothing lost)
+    const totalLoss = Math.abs(rC.netProfit);
+    const totalAbsorbed = rA.lossAdjustment + rB.lossAdjustment;
+    expect(Math.abs(totalAbsorbed - totalLoss)).toBeLessThan(2); // rounding tolerance
+  });
+
+  it("mega-loss: when total loss exceeds total profit, all salary = 0", async () => {
+    mockSession("ADMIN");
+    // Tour A: +5 000, Tour B: +3 000, Tour C: −200 000
+    // totalPositive = 8 000 < 200 000 → period is net-negative → salary = 0
+    const tA = makeDeparture({ id: "dep-1", applications: [makeApp({ id: "a1", finalPrice: 5000 })], groupExpenses: [] });
+    const tB = makeDeparture({ id: "dep-2", title: "Тур 2", applications: [makeApp({ id: "a2", finalPrice: 3000 })], groupExpenses: [] });
+    const tC = makeDeparture({ id: "dep-3", title: "Мегаубыток", applications: [makeApp({ id: "a3", finalPrice: 1000 })], groupExpenses: [201000] });
+
+    prismaMock.departure.findMany.mockResolvedValue([tA, tB, tC] as never);
+
+    const data = await (await GET(makeRequest(BASE_URL))).json();
+    data.departures
+      .filter((d: { netProfit: number }) => d.netProfit > 0)
+      .forEach((d: { adjustedProfit: number; managerBreakdown: { salary: number }[] }) => {
+        expect(d.adjustedProfit).toBe(0);
+        d.managerBreakdown.forEach((m) => expect(m.salary).toBe(0));
+      });
+    expect(data.totals.totalSalary).toBe(0);
+  });
+
+  it("proportional: absorbed losses sum exactly equals total negative loss", async () => {
+    mockSession("ADMIN");
+    // 3 profitable tours with different profits, 1 loss tour
+    // Verify sum(lossAdjustment) ≈ |netProfit of loss tour|
+    const t1 = makeDeparture({ id: "dep-1", applications: [makeApp({ id: "a1", finalPrice: 30000 })], groupExpenses: [5000] });
+    const t2 = makeDeparture({ id: "dep-2", title: "Тур 2", applications: [makeApp({ id: "a2", finalPrice: 20000 })], groupExpenses: [5000] });
+    const t3 = makeDeparture({ id: "dep-3", title: "Тур 3", applications: [makeApp({ id: "a3", finalPrice: 10000 })], groupExpenses: [5000] });
+    const tLoss = makeDeparture({ id: "dep-loss", title: "Убыток", applications: [makeApp({ id: "a4", finalPrice: 2000 })], groupExpenses: [17000] });
+
+    prismaMock.departure.findMany.mockResolvedValue([t1, t2, t3, tLoss] as never);
+
+    const data = await (await GET(makeRequest(BASE_URL))).json();
+    const lossSource = data.departures.find((d: { id: string }) => d.id === "dep-loss");
+    const profitableDeps = data.departures.filter((d: { netProfit: number }) => d.netProfit > 0);
+
+    const totalLoss = Math.abs(lossSource.netProfit);
+    const totalAbsorbed = profitableDeps.reduce(
+      (sum: number, d: { lossAdjustment: number }) => sum + d.lossAdjustment, 0
+    );
+    // Rounding may cause ±2 som difference
+    expect(Math.abs(totalAbsorbed - totalLoss)).toBeLessThan(3);
+  });
+
   it("loss exactly equals profit: adjustedProfit collapses to 0", async () => {
     mockSession("ADMIN");
     // Tour1: profit = +5000. Tour2: loss = -5000. After distribution: 5000-5000=0
