@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
           booking: { isNot: null },
         },
         include: {
-          booking: { select: { finalPrice: true, currency: true } },
+          booking: { select: { finalPrice: true, depositPaid: true, currency: true } },
           manager: { select: { id: true, name: true } },
         },
       },
@@ -66,10 +66,11 @@ export async function GET(req: NextRequest) {
 
   // First pass: calculate base profits for all departures
   const baseResults = departures.map((dep) => {
-    const revenue = dep.applications.reduce(
-      (sum, app) => sum + (app.booking?.finalPrice ?? 0),
-      0
-    );
+    const revenue = dep.applications.reduce((sum, app) => {
+      if (!app.booking) return sum;
+      // NO_SHOW: company only received the deposit, not the full price
+      return sum + (app.status === "NO_SHOW" ? app.booking.depositPaid : app.booking.finalPrice);
+    }, 0);
     const tourExpenses = dep.groups
       .flatMap((g) => g.expenses)
       .reduce((sum, e) => sum + e.amount, 0);
