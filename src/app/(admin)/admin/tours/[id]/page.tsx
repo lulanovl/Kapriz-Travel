@@ -36,7 +36,7 @@ export default async function TourDetailPage({
               id: true,
               name: true,
               maxSeats: true,
-              _count: { select: { applications: true } },
+              applications: { select: { persons: true } },
             },
           },
           _count: { select: { applications: true } },
