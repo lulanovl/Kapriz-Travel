@@ -202,8 +202,11 @@ export default async function FinancePage({
   const guideRemainder = (a: AppWithBooking) => {
     if (!a.booking) return 0;
     const gps = a.booking.guidePaymentStatus;
-    if (gps === "NO_SHOW" || gps === "TRANSFERRED" || gps === "PAID") return 0;
-    if (a.booking.paymentStatus === "PAID") return 0;
+    // NO_SHOW: guide gets nothing (company keeps deposit)
+    // TRANSFERRED: tourist paid company directly, guide never held this money
+    if (gps === "NO_SHOW" || gps === "TRANSFERRED") return 0;
+    // PENDING: guide will collect from tourist — counts toward guide budget
+    // PAID: guide already collected from tourist — also in guide budget (has it in hand)
     return Math.max(0, a.booking.finalPrice - a.booking.depositPaid);
   };
 
