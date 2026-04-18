@@ -1,18 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import ClientsTable from "@/components/admin/ClientsTable";
 
 export const dynamic = "force-dynamic";
-
-const SOURCE_LABELS: Record<string, string> = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  google: "Google",
-  website: "Сайт",
-  referral: "Реферал",
-};
 
 export default async function ClientsPage({
   searchParams,
@@ -51,7 +43,7 @@ export default async function ClientsPage({
     },
   });
 
-  // Get total spend per client
+  // Total spend: sum finalPrice for PAID bookings, depositPaid for PARTIAL
   const clientsWithSpend = await Promise.all(
     clients.map(async (c) => {
       const bookings = await prisma.booking.findMany({
@@ -59,10 +51,25 @@ export default async function ClientsPage({
           application: { clientId: c.id },
           paymentStatus: { in: ["PARTIAL", "PAID"] },
         },
-        select: { finalPrice: true, depositPaid: true },
+        select: { finalPrice: true, depositPaid: true, paymentStatus: true },
       });
-      const totalSpend = bookings.reduce((sum, b) => sum + b.depositPaid, 0);
-      return { ...c, totalSpend };
+      const totalSpend = bookings.reduce(
+        (sum, b) => sum + (b.paymentStatus === "PAID" ? b.finalPrice : b.depositPaid),
+        0
+      );
+      return {
+        id: c.id,
+        name: c.name,
+        whatsapp: c.whatsapp,
+        country: c.country,
+        city: c.city,
+        source: c.source,
+        tag: c.tag,
+        noShow: c.noShow,
+        totalSpend,
+        applicationCount: c._count.applications,
+        lastTour: c.applications[0]?.tour?.title ?? null,
+      };
     })
   );
 
@@ -71,9 +78,7 @@ export default async function ClientsPage({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Клиенты</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {clients.length} клиентов
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">{clients.length} клиентов</p>
         </div>
       </div>
 
@@ -110,111 +115,17 @@ export default async function ClientsPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Клиент
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  WhatsApp
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Страна
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Источник
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Заявок
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Сумма
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">
-                  Последний тур
-                </th>
-                <th className="px-4 py-3"></th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Клиент</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">WhatsApp</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Страна</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Источник</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Заявок</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Сумма</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Последний тур</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {clientsWithSpend.map((client) => {
-                const phone = client.whatsapp.replace(/\D/g, "");
-                const lastTour = client.applications[0]?.tour?.title;
-                return (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {client.name}
-                      </div>
-                      {client.tag && (
-                        <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
-                          {client.tag}
-                        </span>
-                      )}
-                      {client.noShow && (
-                        <span className="ml-1 text-xs px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
-                          Не явился
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <a
-                        href={`https://wa.me/${phone}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-600 hover:text-green-800 hover:underline"
-                      >
-                        {client.whatsapp}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {[client.city, client.country]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {client.source
-                        ? (SOURCE_LABELS[client.source] ?? client.source)
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
-                        {client._count.applications}
-                      </span>
-                      {client._count.applications > 1 && (
-                        <span className="ml-1 text-xs text-green-600 font-medium">
-                          ↺
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">
-                      {client.totalSpend > 0
-                        ? `${client.totalSpend.toLocaleString()} сом`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs max-w-[160px]">
-                      <span className="truncate block">{lastTour ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/clients/${client.id}`}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                      >
-                        Открыть →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {clients.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-16 text-center text-gray-400"
-                  >
-                    {query ? `По запросу «${query}» ничего не найдено` : "Клиентов пока нет"}
-                  </td>
-                </tr>
-              )}
+              <ClientsTable clients={clientsWithSpend} />
             </tbody>
           </table>
         </div>
