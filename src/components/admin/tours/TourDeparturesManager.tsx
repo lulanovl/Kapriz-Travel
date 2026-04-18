@@ -13,7 +13,7 @@ interface Departure {
     id: string;
     name: string;
     maxSeats: number;
-    _count: { applications: number };
+    applications: { persons: number }[];
   }[];
 }
 
@@ -96,7 +96,9 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
   function groupSummary(dep: Departure) {
     if (dep.groups.length === 0) return null;
     const totalSeats = dep.groups.reduce((s, g) => s + g.maxSeats, 0);
-    const totalFilled = dep.groups.reduce((s, g) => s + g._count.applications, 0);
+    const totalFilled = dep.groups.reduce(
+      (s, g) => s + g.applications.reduce((ps, a) => ps + a.persons, 0), 0
+    );
     return { totalSeats, totalFilled, groupCount: dep.groups.length };
   }
 
@@ -197,7 +199,10 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                       {dep.groups.length > 0 ? (
                         <span className="text-xs text-blue-600 font-medium">
                           {dep.groups.length} авт. ·{" "}
-                          {dep.groups.map((g) => `${g.name}: ${g._count.applications}/${g.maxSeats}`).join(", ")}
+                          {dep.groups.map((g) => {
+                            const gPersons = g.applications.reduce((s, a) => s + a.persons, 0);
+                            return `${g.name}: ${gPersons}/${g.maxSeats}`;
+                          }).join(", ")}
                         </span>
                       ) : dep._count.applications > 0 ? (
                         <span className="text-xs text-yellow-600 font-medium">

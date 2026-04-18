@@ -18,7 +18,7 @@ export async function GET(
         include: {
           guide: { select: { id: true, name: true, phone: true } },
           driver: { select: { id: true, name: true, phone: true } },
-          _count: { select: { applications: true } },
+          applications: { select: { persons: true } },
         },
       },
       _count: { select: { applications: true } },
