@@ -127,6 +127,20 @@ export default function ApplicationDetailClient({
       : ""
   );
   const [paymentStatus, setPaymentStatus] = useState(data.booking?.paymentStatus ?? "PENDING");
+
+  const handleDepositChange = (value: number) => {
+    setDepositPaid(value);
+    if (value > 0 && !depositDate) {
+      setDepositDate(new Date().toISOString().slice(0, 10));
+    }
+    if (value >= finalPrice && value > 0) {
+      setPaymentStatus("PAID");
+    } else if (value > 0) {
+      setPaymentStatus("PARTIAL");
+    } else {
+      setPaymentStatus("PENDING");
+    }
+  };
   const [currency, setCurrency] = useState(data.booking?.currency ?? "KGS");
 
   const [departureId, setDepartureId] = useState(data.departure?.id ?? "");
@@ -170,11 +184,13 @@ export default function ApplicationDetailClient({
   };
 
   const handleConfirm = async () => {
+    const newManagerId = managerId || data.currentUserId;
+    setManagerId(newManagerId);
     setActionLoading(true);
     const res = await fetch(`/api/admin/applications/${data.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "CONTACT", managerId: managerId || null }),
+      body: JSON.stringify({ status: "CONTACT", managerId: newManagerId }),
     });
     setActionLoading(false);
     if (res.ok) {
@@ -230,12 +246,17 @@ export default function ApplicationDetailClient({
     setSaving(true);
     setSaveError("");
     try {
+      // Prevent race condition: if deposit is entered and status can auto-advance, set it explicitly
+      const AUTO_DEPOSIT_STATUSES = ["NEW", "CONTACT", "PROPOSAL"];
+      const effectiveStatus =
+        depositPaid > 0 && AUTO_DEPOSIT_STATUSES.includes(status) ? "DEPOSIT" : status;
+
       const [appRes, bookingRes] = await Promise.all([
         fetch(`/api/admin/applications/${data.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            status,
+            status: effectiveStatus,
             managerId: managerId || null,
             comment,
             departureId: departureId || null,
@@ -474,7 +495,7 @@ export default function ApplicationDetailClient({
               <input
                 type="number"
                 value={depositPaid}
-                onChange={(e) => setDepositPaid(Number(e.target.value))}
+                onChange={(e) => handleDepositChange(Number(e.target.value))}
                 onFocus={(e) => e.target.select()}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

@@ -64,23 +64,34 @@ export async function GET(req: NextRequest) {
     { managerId: string; managerName: string; totalPersons: number; totalSalary: number }
   > = {};
 
-  const departureResults = departures.map((dep) => {
-    // Revenue: finalPrice is already the total for all persons in the booking
+  // First pass: calculate base profits for all departures
+  const baseResults = departures.map((dep) => {
     const revenue = dep.applications.reduce(
       (sum, app) => sum + (app.booking?.finalPrice ?? 0),
       0
     );
-
-    // Tour operational expenses (all groups summed, treated as KGS)
     const tourExpenses = dep.groups
       .flatMap((g) => g.expenses)
       .reduce((sum, e) => sum + e.amount, 0);
-
-    // Extra expenses (marketing/targeting added by financier)
     const extraExpensesTotal = dep.extraExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-    // Net profit (can be negative → salary = 0)
     const netProfit = revenue - tourExpenses - extraExpensesTotal;
+    return { dep, revenue, tourExpenses, extraExpensesTotal, netProfit };
+  });
+
+  // Distribute negative profits equally across profitable departures
+  const totalNegativeLoss = baseResults.reduce(
+    (sum, r) => (r.netProfit < 0 ? sum + Math.abs(r.netProfit) : sum),
+    0
+  );
+  const profitableCount = baseResults.filter((r) => r.netProfit > 0).length;
+  const lossPerProfitableDep = profitableCount > 0 ? totalNegativeLoss / profitableCount : 0;
+
+  // Second pass: build final results with adjusted profits
+  const departureResults = baseResults.map(({ dep, revenue, tourExpenses, extraExpensesTotal, netProfit }) => {
+    // Profitable departures absorb losses from negative ones equally
+    const adjustedProfit = netProfit > 0
+      ? Math.max(0, netProfit - lossPerProfitableDep)
+      : 0;
 
     const totalPersons = dep.applications.reduce((sum, app) => sum + app.persons, 0);
 
@@ -103,14 +114,12 @@ export async function GET(req: NextRequest) {
       .reduce((sum, a) => sum + a.persons, 0);
 
     const managerBreakdown = Object.values(managerMap).map((m) => {
-      // Profit is split proportionally; if net profit ≤ 0, salary is 0
       const profitShare =
-        totalPersons > 0 && netProfit > 0
-          ? (netProfit * m.persons) / totalPersons
+        totalPersons > 0 && adjustedProfit > 0
+          ? (adjustedProfit * m.persons) / totalPersons
           : 0;
       const salary = Math.round(profitShare * 0.04); // 4%
 
-      // Accumulate in summary
       if (!summaryMap[m.managerId]) {
         summaryMap[m.managerId] = {
           managerId: m.managerId,
@@ -149,6 +158,8 @@ export async function GET(req: NextRequest) {
       })),
       totalExtraExpenses: extraExpensesTotal,
       netProfit,
+      adjustedProfit,
+      lossAdjustment: netProfit > 0 ? Math.round(lossPerProfitableDep) : 0,
       managerBreakdown: managerBreakdown.sort((a, b) => b.persons - a.persons),
     };
   });

@@ -32,6 +32,8 @@ type DepartureSalary = {
   extraExpenses: ExtraExpense[];
   totalExtraExpenses: number;
   netProfit: number;
+  adjustedProfit: number;
+  lossAdjustment: number;
   managerBreakdown: ManagerBreakdown[];
 };
 
@@ -385,6 +387,22 @@ function DepartureCard({
                 </span>
                 <ProfitBadge value={dep.netProfit} />
               </div>
+
+              {/* Loss deduction from other negative tours */}
+              {dep.lossAdjustment > 0 && (
+                <div className="flex justify-between text-xs text-orange-600 pt-1">
+                  <span>Вычет убытков других туров</span>
+                  <span className="font-medium">−{fmt(dep.lossAdjustment)} сом</span>
+                </div>
+              )}
+
+              {/* Adjusted profit used for salary */}
+              {dep.lossAdjustment > 0 && (
+                <div className="flex justify-between font-semibold text-sm pt-1 border-t border-orange-200">
+                  <span className="text-orange-700">Прибыль для расчёта зарплаты</span>
+                  <span className="text-orange-700">{fmt(dep.adjustedProfit)} сом</span>
+                </div>
+              )}
             </div>
 
             {/* Manager breakdown table */}
@@ -443,7 +461,7 @@ function DepartureCard({
             {/* Calculation note */}
             {dep.netProfit < 0 && (
               <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-xs text-red-600">
-                Тур убыточен — зарплата менеджерам с этого тура не начисляется.
+                Тур убыточен — убыток ({fmt(Math.abs(dep.netProfit))} сом) равномерно вычитается из прибыльных туров периода.
               </div>
             )}
           </div>
@@ -646,11 +664,11 @@ export default function SalaryClient({
           <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4">
             <p className="text-xs font-semibold text-blue-700 mb-1">Формула расчёта</p>
             <p className="text-xs text-blue-600">
-              Зарплата = (Выручка − Расходы тура − Доп. расходы) × (туристы менеджера / все туристы) × 4%
+              Зарплата = (Прибыль тура − Вычет убытков) × (туристы менеджера / все туристы) × 4%
             </p>
             <p className="text-xs text-blue-400 mt-1">
+              Убытки минусовых туров делятся поровну между всеми прибыльными турами периода.
               Доп. расходы (таргет, реклама) добавляются финансистом к каждому выезду.
-              Если прибыль отрицательная — зарплата с этого тура не начисляется.
             </p>
           </div>
         </>
