@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import FinanceFilterTabs from "@/components/admin/FinanceFilterTabs";
+import WeekNavigator from "@/components/admin/WeekNavigator";
 
 export const dynamic = "force-dynamic";
 
@@ -104,12 +105,13 @@ function groupByWeek(rows: DepRow[], order: "asc" | "desc"): WeekGroup[] {
 export default async function FinancePage({
   searchParams,
 }: {
-  searchParams: { period?: string };
+  searchParams: { period?: string; weekOffset?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const period = searchParams.period ?? "week";
+  const period     = searchParams.period ?? "week";
+  const weekOffset = parseInt(searchParams.weekOffset ?? "0", 10) || 0;
 
   // ── Date filter ──
   const now = new Date();
@@ -118,12 +120,14 @@ export default async function FinancePage({
   let periodLabel = "";
 
   if (period === "week") {
-    const mon = getMondayOfWeek(now);
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + weekOffset * 7);
+    const mon = getMondayOfWeek(targetDate);
     const sun = new Date(mon);
     sun.setDate(mon.getDate() + 6);
     sun.setHours(23, 59, 59, 999);
     dateFilter  = { gte: mon, lte: sun };
-    periodLabel = weekRangeLabel(now);
+    periodLabel = weekRangeLabel(targetDate);
   } else if (period === "month") {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -292,9 +296,13 @@ export default async function FinancePage({
       <div className="p-6 space-y-6">
 
         {/* ── Tabs + Period label ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
           <FinanceFilterTabs current={period} />
-          <span className="text-sm text-gray-500 capitalize">{periodLabel}</span>
+          {period === "week" ? (
+            <WeekNavigator weekOffset={weekOffset} label={periodLabel} />
+          ) : (
+            <span className="text-sm text-gray-500 capitalize">{periodLabel}</span>
+          )}
         </div>
 
         {/* ── Главные KPI ─────────────────────────────────────────────────── */}
