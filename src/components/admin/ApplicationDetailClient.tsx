@@ -5,15 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const STATUSES = [
-  { id: "NEW", label: "Новая", color: "bg-blue-100 text-blue-700" },
-  { id: "CONTACT", label: "Контакт", color: "bg-yellow-100 text-yellow-700" },
-  { id: "PROPOSAL", label: "КП", color: "bg-purple-100 text-purple-700" },
-  { id: "DEPOSIT", label: "Предоплата", color: "bg-orange-100 text-orange-700" },
-  { id: "IN_BUS", label: "Распределение", color: "bg-indigo-100 text-indigo-700" },
-  { id: "NO_SHOW", label: "Не явился", color: "bg-red-100 text-red-700" },
-  { id: "ON_TOUR", label: "В туре", color: "bg-green-100 text-green-700" },
-  { id: "FEEDBACK", label: "Отзыв", color: "bg-teal-100 text-teal-700" },
-  { id: "ARCHIVE", label: "Архив", color: "bg-gray-100 text-gray-500" },
+  { id: "NEW",      label: "Новая",         color: "bg-blue-100 text-blue-700"   },
+  { id: "CONTACT",  label: "Контакт",       color: "bg-yellow-100 text-yellow-700" },
+  { id: "DEPOSIT",  label: "Предоплата",    color: "bg-orange-100 text-orange-700" },
+  { id: "IN_BUS",   label: "Распределение", color: "bg-indigo-100 text-indigo-700" },
+  { id: "NO_SHOW",  label: "Не явился",     color: "bg-red-100 text-red-700"     },
+  { id: "ON_TOUR",  label: "В туре",        color: "bg-green-100 text-green-700"  },
+  { id: "FEEDBACK", label: "Отзыв",         color: "bg-teal-100 text-teal-700"   },
+  { id: "ARCHIVE",  label: "Архив",         color: "bg-gray-100 text-gray-500"   },
 ];
 
 const PAYMENT_STATUSES = [

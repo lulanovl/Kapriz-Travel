@@ -18,15 +18,13 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import KanbanCard, { KanbanApplication } from "./KanbanCard";
 
 const COLUMNS: { id: string; label: string; color: string; headerColor: string }[] = [
-  { id: "NEW", label: "Новая", color: "bg-blue-50 border-blue-200", headerColor: "text-blue-700" },
-  { id: "CONTACT", label: "Контакт", color: "bg-yellow-50 border-yellow-200", headerColor: "text-yellow-700" },
-  { id: "PROPOSAL", label: "КП", color: "bg-purple-50 border-purple-200", headerColor: "text-purple-700" },
-  { id: "DEPOSIT", label: "Предоплата", color: "bg-orange-50 border-orange-200", headerColor: "text-orange-700" },
-  { id: "IN_BUS", label: "Распределение", color: "bg-indigo-50 border-indigo-200", headerColor: "text-indigo-700" },
-  { id: "NO_SHOW", label: "Не явился", color: "bg-red-50 border-red-200", headerColor: "text-red-700" },
-  { id: "ON_TOUR", label: "В туре", color: "bg-green-50 border-green-200", headerColor: "text-green-700" },
-  { id: "FEEDBACK", label: "Отзыв", color: "bg-teal-50 border-teal-200", headerColor: "text-teal-700" },
-  { id: "ARCHIVE", label: "Архив", color: "bg-gray-50 border-gray-200", headerColor: "text-gray-500" },
+  { id: "NEW",      label: "Новая",          color: "bg-blue-50 border-blue-200",    headerColor: "text-blue-700"   },
+  { id: "CONTACT",  label: "Контакт",        color: "bg-yellow-50 border-yellow-200", headerColor: "text-yellow-700" },
+  { id: "DEPOSIT",  label: "Предоплата",     color: "bg-orange-50 border-orange-200", headerColor: "text-orange-700" },
+  { id: "IN_BUS",   label: "Распределение",  color: "bg-indigo-50 border-indigo-200", headerColor: "text-indigo-700" },
+  { id: "ON_TOUR",  label: "В туре",         color: "bg-green-50 border-green-200",   headerColor: "text-green-700"  },
+  { id: "FEEDBACK", label: "Отзыв",          color: "bg-teal-50 border-teal-200",     headerColor: "text-teal-700"   },
+  { id: "ARCHIVE",  label: "Архив",          color: "bg-gray-50 border-gray-200",     headerColor: "text-gray-500"   },
 ];
 
 // Separate component so useDroppable can be called as a hook
@@ -97,7 +95,13 @@ export default function KanbanBoard({
   );
 
   const getColumnApps = useCallback(
-    (status: string) => applications.filter((a) => a.status === status),
+    (colId: string) => {
+      if (colId === "CONTACT") {
+        // Legacy PROPOSAL apps shown here until manually moved
+        return applications.filter((a) => a.status === "CONTACT" || a.status === "PROPOSAL");
+      }
+      return applications.filter((a) => a.status === colId);
+    },
     [applications]
   );
 

@@ -14,9 +14,10 @@ export default async function ApplicationsPage() {
 
   const isManager = session.user.role === "MANAGER";
 
-  // Auto-transition: if departure date has passed and status is DEPOSIT/IN_BUS → ON_TOUR
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Auto-transition: DEPOSIT/IN_BUS → ON_TOUR when departure day arrives
   await prisma.application.updateMany({
     where: {
       status: { in: ["DEPOSIT", "IN_BUS"] },
@@ -24,6 +25,36 @@ export default async function ApplicationsPage() {
     },
     data: { status: "ON_TOUR" },
   });
+
+  // Auto-transition: ON_TOUR → FEEDBACK when tour has ended (departure + duration days ≤ today)
+  const onTourApps = await prisma.application.findMany({
+    where: {
+      status: "ON_TOUR",
+      departure: { departureDate: { lte: today } },
+    },
+    select: {
+      id: true,
+      tour: { select: { duration: true } },
+      departure: { select: { departureDate: true } },
+    },
+  });
+
+  const feedbackIds = onTourApps
+    .filter((app) => {
+      if (!app.departure || !app.tour?.duration) return false;
+      const endDate = new Date(app.departure.departureDate);
+      endDate.setDate(endDate.getDate() + app.tour.duration);
+      endDate.setHours(0, 0, 0, 0);
+      return endDate <= today;
+    })
+    .map((app) => app.id);
+
+  if (feedbackIds.length > 0) {
+    await prisma.application.updateMany({
+      where: { id: { in: feedbackIds } },
+      data: { status: "FEEDBACK" },
+    });
+  }
 
   const applications = await prisma.application.findMany({
     where: isManager

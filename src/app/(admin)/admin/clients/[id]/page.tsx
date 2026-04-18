@@ -57,10 +57,12 @@ export default async function ClientDetailPage({
   if (!client) notFound();
 
   const totalApplications = client.applications.length;
-  const totalSpend = client.applications.reduce(
-    (sum, a) => sum + (a.booking?.depositPaid ?? 0),
-    0
-  );
+  const totalSpend = client.applications.reduce((sum, a) => {
+    if (!a.booking) return sum;
+    return sum + (a.booking.paymentStatus === "PAID"
+      ? a.booking.finalPrice
+      : a.booking.depositPaid);
+  }, 0);
   const phone = client.whatsapp.replace(/\D/g, "");
   const isRepeat = totalApplications > 1;
 

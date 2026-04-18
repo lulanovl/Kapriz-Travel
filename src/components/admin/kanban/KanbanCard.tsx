@@ -69,7 +69,9 @@ export default function KanbanCard({ app }: { app: KanbanApplication }) {
 
   const phone = app.client.whatsapp.replace(/\D/g, "");
   const balance = app.booking
-    ? app.booking.finalPrice - app.booking.depositPaid
+    ? (app.booking.paymentStatus === "PAID"
+        ? 0
+        : Math.max(0, app.booking.finalPrice - app.booking.depositPaid))
     : null;
 
   const handleCardClick = () => {
