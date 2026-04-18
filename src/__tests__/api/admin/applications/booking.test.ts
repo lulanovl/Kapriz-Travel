@@ -3,7 +3,7 @@
  * Covers: auth, create booking, update booking, price history log,
  *         auto-status DEPOSIT when depositPaid > 0.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { POST } from "@/app/api/admin/applications/[id]/booking/route";
 import { prismaMock } from "../../../helpers/prisma";
 import { mockSession, mockNoSession } from "../../../helpers/session";

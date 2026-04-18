@@ -6,7 +6,6 @@ import { describe, it, expect } from "vitest";
 import { GET } from "@/app/api/admin/finance/export/route";
 import { prismaMock } from "../../../helpers/prisma";
 import { mockSession, mockNoSession } from "../../../helpers/session";
-import { makeRequest } from "../../../helpers/request";
 
 // ─── Auth guard ────────────────────────────────────────────────────────────
 

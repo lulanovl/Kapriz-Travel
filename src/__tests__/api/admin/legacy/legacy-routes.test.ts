@@ -12,7 +12,6 @@ import { PUT, DELETE } from "@/app/api/admin/tour-dates/[dateId]/route";
 import { GET as GET_EXPENSES, POST as POST_EXPENSES } from "@/app/api/admin/tour-dates/[dateId]/expenses/route";
 import { POST as POST_TOKEN, GET as GET_TOKEN } from "@/app/api/admin/tour-dates/[dateId]/guide-token/route";
 import { GET as GET_DATES, POST as POST_DATES } from "@/app/api/admin/tours/[id]/dates/route";
-import { makeRequest, makeParams } from "../../../helpers/request";
 
 describe("Deprecated tour-dates routes — all return 410", () => {
   it("PUT /api/admin/tour-dates/[dateId] → 410", async () => {
