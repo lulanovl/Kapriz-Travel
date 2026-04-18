@@ -141,7 +141,7 @@ export default function ApplicationDetailClient({
 
   const currentStatus = STATUSES.find((s) => s.id === status);
   const phone = data.client.whatsapp.replace(/\D/g, "");
-  const balance = finalPrice - depositPaid;
+  const balance = paymentStatus === "PAID" ? 0 : Math.max(0, finalPrice - depositPaid);
   const calculatedPrice = data.tour.basePrice * data.persons;
   const priceMatchesCalc = Math.abs(finalPrice - calculatedPrice) < 1;
 
@@ -195,6 +195,35 @@ export default function ApplicationDetailClient({
     setActionLoading(false);
     if (res.ok) {
       router.push("/admin/applications");
+    }
+  };
+
+  const handleReceiveFullPayment = async () => {
+    if (!confirm("Принять полную оплату? Остаток будет отмечен как оплачен.")) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch(`/api/admin/applications/${data.id}/booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          finalPrice,
+          depositPaid: finalPrice,
+          depositDate: depositDate || new Date().toISOString().slice(0, 10),
+          paymentStatus: "PAID",
+          currency,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setSaveError(d.error ?? "Ошибка сохранения");
+        return;
+      }
+      setDepositPaid(finalPrice);
+      setPaymentStatus("PAID");
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -504,9 +533,28 @@ export default function ApplicationDetailClient({
                 balance > 0 ? "text-orange-600" : "text-green-600"
               }`}
             >
-              {balance.toLocaleString()} {currency}
+              {balance > 0 ? balance.toLocaleString() : "0"} {currency}
             </span>
           </div>
+
+          {/* Quick full-payment button (tourist paid manager directly) */}
+          {balance > 0 && paymentStatus !== "PAID" && (
+            <div className="mt-3 flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-emerald-800">Турист оплатил остаток менеджеру?</p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  Нажмите чтобы зафиксировать полную оплату — {balance.toLocaleString()} {currency}
+                </p>
+              </div>
+              <button
+                onClick={handleReceiveFullPayment}
+                disabled={saving}
+                className="shrink-0 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                {saving ? "..." : "Принять оплату"}
+              </button>
+            </div>
+          )}
 
           {status === "NO_SHOW" && depositPaid > 0 && (
             <div className="bg-red-50 rounded-lg p-3 mt-3 flex items-center justify-between">

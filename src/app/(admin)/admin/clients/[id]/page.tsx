@@ -212,7 +212,9 @@ export default async function ClientDetailPage({
                     color: "bg-gray-100 text-gray-500",
                   };
                   const balance = app.booking
-                    ? app.booking.finalPrice - app.booking.depositPaid
+                    ? (app.booking.paymentStatus === "PAID"
+                        ? 0
+                        : Math.max(0, app.booking.finalPrice - app.booking.depositPaid))
                     : null;
 
                   return (

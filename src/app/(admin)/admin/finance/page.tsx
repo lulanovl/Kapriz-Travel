@@ -202,7 +202,8 @@ export default async function FinancePage({
   const guideRemainder = (a: AppWithBooking) => {
     if (!a.booking) return 0;
     const gps = a.booking.guidePaymentStatus;
-    if (gps === "NO_SHOW" || gps === "TRANSFERRED") return 0;
+    if (gps === "NO_SHOW" || gps === "TRANSFERRED" || gps === "PAID") return 0;
+    if (a.booking.paymentStatus === "PAID") return 0;
     return Math.max(0, a.booking.finalPrice - a.booking.depositPaid);
   };
 
