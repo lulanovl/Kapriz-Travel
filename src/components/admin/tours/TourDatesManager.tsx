@@ -211,7 +211,7 @@ export default function TourDatesManager({ tourId, initialDates }: Props) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Макс. мест</label>
-              <input type="number" min="1" value={form.maxSeats} onChange={(e) => set("maxSeats", e.target.value)} onFocus={(e) => e.target.select()} className={inputClass} />
+              <input type="number" min="1" value={form.maxSeats} onChange={(e) => set("maxSeats", e.target.value)} onFocus={(e) => e.target.select()} onWheel={(e) => e.currentTarget.blur()} className={inputClass} />
             </div>
             <div>
               {/* placeholder col */}

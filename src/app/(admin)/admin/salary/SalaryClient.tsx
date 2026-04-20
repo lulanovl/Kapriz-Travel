@@ -352,6 +352,7 @@ function DepartureCard({
                       min="1"
                       onChange={(e) => setExpAmount(e.target.value)}
                       onFocus={(e) => e.target.select()}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                     <select

@@ -513,6 +513,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                     value={groupForm.maxSeats}
                     onChange={(e) => setGroupForm((f) => ({ ...f, maxSeats: e.target.value }))}
                     onFocus={(e) => e.target.select()}
+                    onWheel={(e) => e.currentTarget.blur()}
                     className={inputClass}
                   />
                 </div>
@@ -593,6 +594,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                               value={editForm.maxSeats}
                               onChange={(e) => setEditForm((f) => ({ ...f, maxSeats: e.target.value }))}
                               onFocus={(e) => e.target.select()}
+                              onWheel={(e) => e.currentTarget.blur()}
                               className={inputClass}
                             />
                           </div>
@@ -856,6 +858,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                                 value={expForm.amount}
                                 onChange={(e) => setExpenseForms((prev) => ({ ...prev, [group.id]: { ...expForm, amount: e.target.value } }))}
                                 onFocus={(e) => e.target.select()}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className="flex-1 min-w-0 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                               />
                               <select

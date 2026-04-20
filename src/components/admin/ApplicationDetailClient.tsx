@@ -479,9 +479,10 @@ export default function ApplicationDetailClient({
               </label>
               <input
                 type="number"
-                value={finalPrice}
-                onChange={(e) => setFinalPrice(Number(e.target.value))}
+                value={finalPrice || ""}
+                onChange={(e) => setFinalPrice(e.target.value === "" ? 0 : Number(e.target.value))}
                 onFocus={(e) => e.target.select()}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -503,9 +504,10 @@ export default function ApplicationDetailClient({
               </label>
               <input
                 type="number"
-                value={depositPaid}
-                onChange={(e) => handleDepositChange(Number(e.target.value))}
+                value={depositPaid || ""}
+                onChange={(e) => handleDepositChange(e.target.value === "" ? 0 : Number(e.target.value))}
                 onFocus={(e) => e.target.select()}
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
