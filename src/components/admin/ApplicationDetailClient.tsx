@@ -116,6 +116,8 @@ export default function ApplicationDetailClient({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const defaultFinalPrice = data.booking?.finalPrice ?? data.tour.basePrice * data.persons;
   const [finalPrice, setFinalPrice] = useState(defaultFinalPrice);
@@ -183,6 +185,23 @@ export default function ApplicationDetailClient({
     }
   };
 
+  // 24h rule: deposit is refunded if departure is more than 24h away (or not set)
+  const willRefund = (() => {
+    if (!data.departure?.departureDate) return true;
+    const hoursUntil = (new Date(data.departure.departureDate).getTime() - Date.now()) / 3_600_000;
+    return hoursUntil > 24;
+  })();
+
+  const handleCancelConfirm = async () => {
+    setCancelLoading(true);
+    const res = await fetch(`/api/admin/applications/${data.id}/cancel`, { method: "POST" });
+    setCancelLoading(false);
+    if (res.ok) {
+      setShowCancelModal(false);
+      router.push("/admin/applications");
+    }
+  };
+
   const handleConfirm = async () => {
     const newManagerId = managerId || data.currentUserId;
     setManagerId(newManagerId);
@@ -199,18 +218,8 @@ export default function ApplicationDetailClient({
     }
   };
 
-  const handleReject = async () => {
-    if (!confirm("Перевести заявку в архив? Клиент отказался.")) return;
-    setActionLoading(true);
-    const res = await fetch(`/api/admin/applications/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ARCHIVE" }),
-    });
-    setActionLoading(false);
-    if (res.ok) {
-      router.push("/admin/applications");
-    }
+  const handleReject = () => {
+    setShowCancelModal(true);
   };
 
   const handleReceiveFullPayment = async () => {
@@ -890,6 +899,89 @@ export default function ApplicationDetailClient({
           )}
         </div>
       </div>
+
+      {/* Cancel confirmation modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="bg-red-600 px-6 py-4">
+              <h3 className="text-base font-semibold text-white">Клиент отказывается от тура</h3>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {data.departure && (
+                <div className="text-sm text-gray-600">
+                  Дата выезда:{" "}
+                  <span className="font-medium text-gray-900">
+                    {new Date(data.departure.departureDate).toLocaleDateString("ru-RU", {
+                      weekday: "long", day: "numeric", month: "long", year: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {depositPaid > 0 ? (
+                willRefund ? (
+                  <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                    <svg className="w-5 h-5 text-green-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-green-800">Предоплата возвращается клиенту</p>
+                      <p className="text-sm text-green-700 mt-0.5">
+                        До выезда больше 24 часов — предоплата{" "}
+                        <span className="font-bold">{depositPaid.toLocaleString()} {currency}</span>{" "}
+                        будет возвращена. Из наших финансов она будет убрана.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                    <svg className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-orange-800">Предоплата остаётся у компании</p>
+                      <p className="text-sm text-orange-700 mt-0.5">
+                        До выезда менее 24 часов — предоплата{" "}
+                        <span className="font-bold">{depositPaid.toLocaleString()} {currency}</span>{" "}
+                        не возвращается согласно правилам отмены.
+                      </p>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600">
+                  Предоплата не была зафиксирована — возврат не требуется.
+                </div>
+              )}
+
+              {data.group && (
+                <p className="text-sm text-gray-500">
+                  Турист будет убран из группы <span className="font-medium text-gray-800">{data.group.name}</span>.
+                </p>
+              )}
+
+              <p className="text-sm text-gray-500">Заявка будет переведена в архив.</p>
+            </div>
+            <div className="px-6 pb-5 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelLoading}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                disabled={cancelLoading}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+              >
+                {cancelLoading ? "Обрабатываю..." : "Подтвердить отказ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
