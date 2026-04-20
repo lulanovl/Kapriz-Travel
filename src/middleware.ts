@@ -14,6 +14,7 @@ export default withAuth(
       !pathname.startsWith("/admin/salary") &&
       !pathname.startsWith("/admin/tours") &&
       !pathname.startsWith("/admin/departures") &&
+      !pathname.startsWith("/admin/calendar") &&
       pathname !== "/admin"
     ) {
       return NextResponse.redirect(new URL("/admin", req.url));
