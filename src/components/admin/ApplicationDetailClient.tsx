@@ -910,17 +910,37 @@ export default function ApplicationDetailClient({
               <h3 className="text-base font-semibold text-white">Клиент отказывается от тура</h3>
             </div>
             <div className="px-6 py-5 space-y-4">
-              {data.departure && (
-                <div className="text-sm text-gray-600">
-                  Дата выезда:{" "}
-                  <span className="font-medium text-gray-900">
-                    {new Date(data.departure.departureDate).toLocaleDateString("ru-RU", {
-                      weekday: "long", day: "numeric", month: "long", year: "numeric",
-                    })}
+              {/* Financial summary — always visible */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden text-sm">
+                {data.departure && (
+                  <div className="flex justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                    <span className="text-gray-500">Дата выезда</span>
+                    <span className="font-medium text-gray-900">
+                      {new Date(data.departure.departureDate).toLocaleDateString("ru-RU", {
+                        weekday: "short", day: "numeric", month: "long", year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between px-4 py-2.5 border-b border-gray-100">
+                  <span className="text-gray-500">Итоговая цена</span>
+                  <span className="font-semibold text-gray-900">{finalPrice.toLocaleString()} {currency}</span>
+                </div>
+                <div className="flex justify-between px-4 py-2.5 border-b border-gray-100">
+                  <span className="text-gray-500">Предоплата получена</span>
+                  <span className={`font-semibold ${depositPaid > 0 ? "text-gray-900" : "text-gray-400"}`}>
+                    {depositPaid > 0 ? `${depositPaid.toLocaleString()} ${currency}` : "не зафиксирована"}
                   </span>
                 </div>
-              )}
+                <div className="flex justify-between px-4 py-2.5">
+                  <span className="text-gray-500">Остаток к оплате</span>
+                  <span className="font-semibold text-gray-900">
+                    {Math.max(0, finalPrice - depositPaid).toLocaleString()} {currency}
+                  </span>
+                </div>
+              </div>
 
+              {/* Deposit decision banner */}
               {depositPaid > 0 ? (
                 willRefund ? (
                   <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -930,9 +950,9 @@ export default function ApplicationDetailClient({
                     <div>
                       <p className="text-sm font-semibold text-green-800">Предоплата возвращается клиенту</p>
                       <p className="text-sm text-green-700 mt-0.5">
-                        До выезда больше 24 часов — предоплата{" "}
+                        До выезда больше 24 часов —{" "}
                         <span className="font-bold">{depositPaid.toLocaleString()} {currency}</span>{" "}
-                        будет возвращена. Из наших финансов она будет убрана.
+                        будут возвращены. Из финансов компании они будут убраны.
                       </p>
                     </div>
                   </div>
@@ -944,16 +964,21 @@ export default function ApplicationDetailClient({
                     <div>
                       <p className="text-sm font-semibold text-orange-800">Предоплата остаётся у компании</p>
                       <p className="text-sm text-orange-700 mt-0.5">
-                        До выезда менее 24 часов — предоплата{" "}
+                        До выезда менее 24 часов —{" "}
                         <span className="font-bold">{depositPaid.toLocaleString()} {currency}</span>{" "}
-                        не возвращается согласно правилам отмены.
+                        не возвращаются согласно правилам отмены.
                       </p>
                     </div>
                   </div>
                 )
               ) : (
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600">
-                  Предоплата не была зафиксирована — возврат не требуется.
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500">
+                  Предоплата не получена — финансовых возвратов не требуется.
+                  {finalPrice > 0 && (
+                    <span className="block mt-1 text-xs text-gray-400">
+                      Если предоплата была получена — сначала сохраните её в бронировании.
+                    </span>
+                  )}
                 </div>
               )}
 
