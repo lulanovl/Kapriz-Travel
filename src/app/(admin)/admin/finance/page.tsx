@@ -156,6 +156,7 @@ export default async function FinancePage({
                   paymentStatus: true,
                   currency: true,
                   guidePaymentStatus: true,
+                  noShow: true,
                 },
               },
             },
@@ -172,6 +173,7 @@ export default async function FinancePage({
               paymentStatus: true,
               currency: true,
               guidePaymentStatus: true,
+              noShow: true,
             },
           },
         },
@@ -189,14 +191,15 @@ export default async function FinancePage({
       paymentStatus: string;
       currency: string;
       guidePaymentStatus: string;
+      noShow: boolean;
     } | null;
   };
 
   const bookingRevenue = (a: AppWithBooking) => {
     if (!a.booking) return 0;
-    return a.booking.guidePaymentStatus === "NO_SHOW"
-      ? a.booking.depositPaid
-      : a.booking.finalPrice;
+    if (a.booking.noShow || a.booking.guidePaymentStatus === "NO_SHOW")
+      return a.booking.depositPaid;
+    return a.booking.finalPrice;
   };
 
   const guideRemainder = (a: AppWithBooking) => {
@@ -223,7 +226,7 @@ export default async function FinancePage({
     const deposits = allApps.reduce((s, a) => s + (a.booking?.depositPaid ?? 0), 0);
     const revenue  = allApps.reduce((s, a) => s + bookingRevenue(a), 0);
 
-    const noShowApps  = allApps.filter((a) => a.booking?.guidePaymentStatus === "NO_SHOW");
+    const noShowApps  = allApps.filter((a) => a.booking?.guidePaymentStatus === "NO_SHOW" || a.booking?.noShow === true);
     const noShowCount = noShowApps.length;
     const noShowLoss  = noShowApps.reduce(
       (s, a) => s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),

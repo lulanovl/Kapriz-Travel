@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
           booking: { isNot: null },
         },
         include: {
-          booking: { select: { finalPrice: true, depositPaid: true, currency: true } },
+          booking: { select: { finalPrice: true, depositPaid: true, currency: true, noShow: true } },
           manager: { select: { id: true, name: true } },
         },
       },
@@ -68,8 +68,9 @@ export async function GET(req: NextRequest) {
   const baseResults = departures.map((dep) => {
     const revenue = dep.applications.reduce((sum, app) => {
       if (!app.booking) return sum;
-      // NO_SHOW: company only received the deposit, not the full price
-      return sum + (app.status === "NO_SHOW" ? app.booking.depositPaid : app.booking.finalPrice);
+      // NO_SHOW or cancelled (noShow=true): company only received the deposit
+      const isNoShow = app.status === "NO_SHOW" || app.booking.noShow === true;
+      return sum + (isNoShow ? app.booking.depositPaid : app.booking.finalPrice);
     }, 0);
     const tourExpenses = dep.groups
       .flatMap((g) => g.expenses)

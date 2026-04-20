@@ -55,6 +55,7 @@ export async function POST(
         where: { id: application.booking.id },
         data: {
           noShow: true,
+          guidePaymentStatus: "NO_SHOW",
           ...(refundDeposit
             ? { depositPaid: 0, paymentStatus: "PENDING", depositDate: null }
             : {}),
