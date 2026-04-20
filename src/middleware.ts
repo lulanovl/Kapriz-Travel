@@ -6,11 +6,14 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Finance role can only access finance routes + dashboard
+    // Finance role: finance, reports, salary, tours (read-only), departures (expenses), dashboard
     if (
       token?.role === "FINANCE" &&
       !pathname.startsWith("/admin/finance") &&
       !pathname.startsWith("/admin/reports") &&
+      !pathname.startsWith("/admin/salary") &&
+      !pathname.startsWith("/admin/tours") &&
+      !pathname.startsWith("/admin/departures") &&
       pathname !== "/admin"
     ) {
       return NextResponse.redirect(new URL("/admin", req.url));

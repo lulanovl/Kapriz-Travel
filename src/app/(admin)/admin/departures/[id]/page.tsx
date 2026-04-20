@@ -82,6 +82,7 @@ export default async function DeparturePage({ params }: { params: { id: string }
   });
 
   const canEdit = ["ADMIN", "SENIOR_MANAGER", "MANAGER"].includes(session.user.role);
+  const canManageExpenses = ["ADMIN", "SENIOR_MANAGER", "MANAGER", "FINANCE"].includes(session.user.role);
 
   return (
     <>
@@ -109,6 +110,7 @@ export default async function DeparturePage({ params }: { params: { id: string }
           }}
           staff={staff}
           canEdit={canEdit}
+          canManageExpenses={canManageExpenses}
         />
       </div>
     </>

@@ -33,6 +33,7 @@ interface Props {
   departure: Departure;
   staff: Staff[];
   canEdit: boolean;
+  canManageExpenses: boolean;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -111,7 +112,7 @@ function AppCard({ app, selected, onSelect, canEdit }: {
 
 type ExpenseForm = { category: string; amount: string; currency: string; note: string };
 
-export default function DepartureDetailClient({ departure, staff, canEdit }: Props) {
+export default function DepartureDetailClient({ departure, staff, canEdit, canManageExpenses }: Props) {
   const guides = staff.filter((s) => s.role === "guide");
   const drivers = staff.filter((s) => s.role === "driver");
 
@@ -818,7 +819,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                                   <span className="font-semibold text-gray-900">
                                     {exp.amount.toLocaleString()} {exp.currency}
                                   </span>
-                                  {canEdit && (
+                                  {canManageExpenses && (
                                     <button
                                       onClick={() => handleDeleteExpense(group.id, exp.id)}
                                       className="text-gray-300 hover:text-red-500 transition-colors"
@@ -838,7 +839,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                         )}
 
                         {/* Add expense form */}
-                        {canEdit && (
+                        {canManageExpenses && (
                           <div className="grid grid-cols-2 gap-2">
                             <select
                               value={expForm.category}
