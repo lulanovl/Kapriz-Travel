@@ -117,6 +117,12 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
 
   const [groups, setGroups] = useState<Group[]>(departure.groups);
   const [unassigned, setUnassigned] = useState<Application[]>(departure.applications);
+
+  // Staff available for NEW group: exclude anyone already assigned in this departure
+  const assignedGuideIds = new Set(groups.map(g => g.guide?.id).filter((id): id is string => !!id));
+  const assignedDriverIds = new Set(groups.map(g => g.driver?.id).filter((id): id is string => !!id));
+  const freeGuides = guides.filter(g => !assignedGuideIds.has(g.id));
+  const freeDrivers = drivers.filter(d => !assignedDriverIds.has(d.id));
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Create group form
@@ -513,14 +519,14 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                   <label className="block text-xs font-medium text-gray-600 mb-1">Гид</label>
                   <select value={groupForm.guideId} onChange={(e) => setGroupForm((f) => ({ ...f, guideId: e.target.value }))} className={inputClass}>
                     <option value="">— Не назначен —</option>
-                    {guides.map((g) => <option key={g.id} value={g.id}>{g.name}{g.phone ? ` (${g.phone})` : ""}</option>)}
+                    {freeGuides.map((g) => <option key={g.id} value={g.id}>{g.name}{g.phone ? ` (${g.phone})` : ""}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Водитель</label>
                   <select value={groupForm.driverId} onChange={(e) => setGroupForm((f) => ({ ...f, driverId: e.target.value }))} className={inputClass}>
                     <option value="">— Не назначен —</option>
-                    {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}{d.phone ? ` (${d.phone})` : ""}</option>)}
+                    {freeDrivers.map((d) => <option key={d.id} value={d.id}>{d.name}{d.phone ? ` (${d.phone})` : ""}</option>)}
                   </select>
                 </div>
               </div>
@@ -548,6 +554,12 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
             groups.map((group) => {
               const isEditing = editingGroupId === group.id;
               const groupPersons = group.applications.reduce((s, a) => s + a.persons, 0);
+
+              // For edit form: exclude staff assigned to OTHER groups in this departure
+              const otherGuideIds = new Set(groups.filter(g => g.id !== group.id).map(g => g.guide?.id).filter((id): id is string => !!id));
+              const otherDriverIds = new Set(groups.filter(g => g.id !== group.id).map(g => g.driver?.id).filter((id): id is string => !!id));
+              const editGuides = guides.filter(g => !otherGuideIds.has(g.id));
+              const editDrivers = drivers.filter(d => !otherDriverIds.has(d.id));
               const fillRatio = group.maxSeats > 0 ? groupPersons / group.maxSeats : 0;
               const fillColor = fillRatio >= 1 ? "bg-red-500" : fillRatio >= 0.8 ? "bg-yellow-500" : "bg-green-500";
               const expenses = groupExpenses[group.id] ?? [];
@@ -587,14 +599,14 @@ export default function DepartureDetailClient({ departure, staff, canEdit }: Pro
                             <label className="block text-xs font-medium text-gray-600 mb-1">Гид</label>
                             <select value={editForm.guideId} onChange={(e) => setEditForm((f) => ({ ...f, guideId: e.target.value }))} className={inputClass}>
                               <option value="">— Не назначен —</option>
-                              {guides.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                              {editGuides.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </select>
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Водитель</label>
                             <select value={editForm.driverId} onChange={(e) => setEditForm((f) => ({ ...f, driverId: e.target.value }))} className={inputClass}>
                               <option value="">— Не назначен —</option>
-                              {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                              {editDrivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                           </div>
                         </div>

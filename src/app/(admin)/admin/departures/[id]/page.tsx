@@ -54,7 +54,32 @@ export default async function DeparturePage({ params }: { params: { id: string }
 
   if (!departure) notFound();
 
-  const staff = await prisma.staff.findMany({ orderBy: { name: "asc" } });
+  // Find staff assigned to active groups in OTHER departures (date >= today, not cancelled)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const busyGroups = await prisma.group.findMany({
+    where: {
+      departure: {
+        id: { not: params.id },
+        departureDate: { gte: today },
+        status: { not: "CANCELLED" },
+      },
+      OR: [{ guideId: { not: null } }, { driverId: { not: null } }],
+    },
+    select: { guideId: true, driverId: true },
+  });
+
+  const busyStaffIds: string[] = [];
+  for (const g of busyGroups) {
+    if (g.guideId) busyStaffIds.push(g.guideId);
+    if (g.driverId) busyStaffIds.push(g.driverId);
+  }
+
+  const staff = await prisma.staff.findMany({
+    where: busyStaffIds.length > 0 ? { id: { notIn: busyStaffIds } } : undefined,
+    orderBy: { name: "asc" },
+  });
 
   const canEdit = ["ADMIN", "SENIOR_MANAGER", "MANAGER"].includes(session.user.role);
 
