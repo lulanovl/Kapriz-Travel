@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
+import NavigationProgress from "@/components/NavigationProgress";
 
 export default function SiteLayout({
   children,
@@ -8,6 +10,9 @@ export default function SiteLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
+      <Suspense>
+        <NavigationProgress color="#CCFF00" />
+      </Suspense>
       <Header />
       <main className="flex-1 pt-16">{children}</main>
       <Footer />
