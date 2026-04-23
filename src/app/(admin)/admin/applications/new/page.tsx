@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -58,11 +59,13 @@ export default async function NewApplicationPage() {
           <span className="text-gray-800 font-medium">Новая заявка</span>
         </div>
 
-        <NewApplicationForm
-          tours={serializedTours}
-          managers={managers}
-          currentUserId={session.user.id}
-        />
+        <Suspense fallback={null}>
+          <NewApplicationForm
+            tours={serializedTours}
+            managers={managers}
+            currentUserId={session.user.id}
+          />
+        </Suspense>
       </div>
     </>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import CountryAutocomplete from "@/components/CountryAutocomplete";
 
 type Tour = {
   id: string;
@@ -28,11 +29,16 @@ export default function NewApplicationForm({
   currentUserId: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [clientName, setClientName] = useState("");
-  const [clientWhatsapp, setClientWhatsapp] = useState("");
-  const [clientCountry, setClientCountry] = useState("");
-  const [clientCity, setClientCity] = useState("");
+  const prefilledName = searchParams.get("name") ?? "";
+  const prefilledWhatsapp = searchParams.get("whatsapp") ?? "";
+  const prefilledCountry = searchParams.get("country") ?? "";
+  const isFromClient = !!prefilledWhatsapp;
+
+  const [clientName, setClientName] = useState(prefilledName);
+  const [clientWhatsapp, setClientWhatsapp] = useState(prefilledWhatsapp);
+  const [clientCountry, setClientCountry] = useState(prefilledCountry);
 
   const [tourId, setTourId] = useState("");
   const [departureId, setDepartureId] = useState("");
@@ -59,7 +65,6 @@ export default function NewApplicationForm({
         clientName,
         clientWhatsapp,
         clientCountry: clientCountry || null,
-        clientCity: clientCity || null,
         tourId,
         departureId: departureId || null,
         persons,
@@ -83,8 +88,15 @@ export default function NewApplicationForm({
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
       {/* Client info */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">Клиент</h2>
+      <div className={`bg-white rounded-xl border p-5 ${isFromClient ? "border-blue-200 bg-blue-50/30" : "border-gray-200"}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-800">Клиент</h2>
+          {isFromClient && (
+            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+              Из профиля клиента
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -95,8 +107,9 @@ export default function NewApplicationForm({
               required
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
+              disabled={isFromClient}
               placeholder="Иванов Иван"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isFromClient ? "border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed" : "border-gray-200"}`}
             />
           </div>
           <div className="col-span-2">
@@ -108,35 +121,26 @@ export default function NewApplicationForm({
               required
               value={clientWhatsapp}
               onChange={(e) => setClientWhatsapp(e.target.value)}
+              disabled={isFromClient}
               placeholder="+996 700 000000"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isFromClient ? "border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed" : "border-gray-200"}`}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Если клиент уже есть в базе по этому номеру — заявка привяжется к нему
-            </p>
+            {!isFromClient && (
+              <p className="text-xs text-gray-400 mt-1">
+                Если клиент уже есть в базе по этому номеру — заявка привяжется к нему
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
               Страна
             </label>
-            <input
-              type="text"
+            <CountryAutocomplete
               value={clientCountry}
-              onChange={(e) => setClientCountry(e.target.value)}
+              onChange={setClientCountry}
+              disabled={isFromClient}
               placeholder="Кыргызстан"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Город
-            </label>
-            <input
-              type="text"
-              value={clientCity}
-              onChange={(e) => setClientCity(e.target.value)}
-              placeholder="Бишкек"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              inputClassName={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isFromClient ? "border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed" : "border-gray-200"}`}
             />
           </div>
         </div>

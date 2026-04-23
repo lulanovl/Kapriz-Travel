@@ -39,20 +39,9 @@ export default function ContactPage() {
                   </svg>
                 ),
                 label: "WhatsApp",
-                value: "+996 700 000 000",
-                href: "https://wa.me/996700000000",
+                value: "+996 508 100 210",
+                href: "https://wa.me/996508100210",
                 bg: "bg-green-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                  </svg>
-                ),
-                label: "Telegram",
-                value: "@kapriz_travel",
-                href: "https://t.me/kapriz_travel",
-                bg: "bg-blue-500",
               },
               {
                 icon: (
@@ -89,30 +78,37 @@ export default function ContactPage() {
             ))}
 
             {/* Address */}
-            <div className="flex items-start gap-4 p-5 bg-gray-50 rounded-2xl">
+            <a
+              href="https://2gis.kg/bishkek/firm/70000001087487232?m=74.609687%2C42.854254%2F16"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-4 p-5 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors duration-200 group cursor-pointer"
+            >
               <div className="w-12 h-12 bg-brand-blue rounded-xl flex items-center justify-center shrink-0">
                 <svg className="w-6 h-6 text-brand-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <div>
-                <div className="font-heading font-800 text-gray-900 text-base">Адрес</div>
-                <div className="text-gray-500 text-sm mt-0.5">г. Бишкек, Кыргызстан</div>
-                <div className="text-gray-400 text-xs mt-1">Пн–Вс: 9:00 – 20:00</div>
+              <div className="flex-1">
+                <div className="font-heading font-800 text-gray-900 text-base group-hover:text-brand-blue transition-colors duration-200">Адрес</div>
+                <div className="text-gray-500 text-sm mt-0.5">ул. Байтик Баатыра, 70</div>
+                <div className="text-gray-500 text-sm">3 этаж, кабинет 304</div>
+                <div className="text-gray-400 text-xs mt-1">Пн–Вс: 9:00 – 20:00 · Открыть в 2GIS →</div>
               </div>
-            </div>
+            </a>
           </div>
 
-          {/* Map placeholder */}
-          <div className="bg-gray-100 rounded-2xl overflow-hidden min-h-[400px] flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              <p className="font-heading font-600 text-sm uppercase tracking-wide">Карта Бишкека</p>
-              <p className="text-xs mt-1">Google Maps embed</p>
-            </div>
+          {/* OpenStreetMap */}
+          <div className="rounded-2xl overflow-hidden min-h-[400px] border border-gray-100 shadow-sm">
+            <iframe
+              src="https://www.openstreetmap.org/export/embed.html?bbox=74.6047%2C42.8493%2C74.6147%2C42.8593&layer=mapnik&marker=42.854254%2C74.609687"
+              width="100%"
+              height="100%"
+              style={{ minHeight: "400px", border: 0 }}
+              loading="lazy"
+              title="Kapriz Travel на карте"
+            />
           </div>
         </div>
       </div>

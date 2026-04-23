@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import CountryAutocomplete from "@/components/CountryAutocomplete";
 
 interface Tour {
   id: string;
@@ -180,8 +181,15 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
 
       {/* Country */}
       <div>
-        <label htmlFor="country" className={labelClass}>Страна / город <span className="text-red-500">*</span></label>
-        <input id="country" type="text" required value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="Кыргызстан, Бишкек" className={inputClass} />
+        <label htmlFor="country" className={labelClass}>Страна <span className="text-red-500">*</span></label>
+        <CountryAutocomplete
+          id="country"
+          required
+          value={form.country}
+          onChange={(val) => set("country", val)}
+          placeholder="Кыргызстан"
+          inputClassName={inputClass}
+        />
       </div>
 
       {/* Tour */}

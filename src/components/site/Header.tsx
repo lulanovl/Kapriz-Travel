@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 const navLinks = [
@@ -17,11 +18,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center">
             <KaprizLogo />
-            <span className="font-heading font-black text-white text-xl tracking-tight uppercase">
-              KAPRIZ
-            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -94,17 +92,33 @@ export default function Header() {
   );
 }
 
-function KaprizLogo() {
+export function KaprizLogo({ className = "" }: { className?: string }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M14 2C14 2 4 8.5 4 16C4 21.523 8.477 26 14 26C19.523 26 24 21.523 24 16C24 8.5 14 2 14 2Z"
-        fill="#CCFF00"
+    <div className={`flex items-center gap-1.5 ${className}`}>
+      <Image
+        src="/images/kg-map.png"
+        alt="Кыргызстан"
+        width={120}
+        height={40}
+        className="h-9"
+        style={{ width: "auto" }}
+        priority
       />
-      <path
-        d="M14 8C14 8 8 12 8 17C8 20.314 10.686 23 14 23C17.314 23 20 20.314 20 17C20 12 14 8 14 8Z"
-        fill="#1B4FD8"
-      />
-    </svg>
+      <div className="flex flex-col leading-none">
+        <span
+          className="text-white font-black uppercase tracking-wide"
+          style={{ fontSize: "1.15rem", letterSpacing: "0.08em" }}
+        >
+          KAPRIZ
+        </span>
+        <span
+          className="text-brand-lime font-bold uppercase"
+          style={{ fontSize: "0.58rem", letterSpacing: "0.28em" }}
+        >
+          TRAVEL
+        </span>
+      </div>
+    </div>
   );
 }
+

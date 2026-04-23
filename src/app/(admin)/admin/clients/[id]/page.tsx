@@ -98,6 +98,12 @@ export default async function ClientDetailPage({
                   </span>
                 )}
               </div>
+              <Link
+                href={`/admin/applications/new?name=${encodeURIComponent(client.name)}&whatsapp=${encodeURIComponent(client.whatsapp)}&country=${encodeURIComponent(client.country ?? "")}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shrink-0"
+              >
+                + Новая заявка
+              </Link>
             </div>
 
             {/* WhatsApp */}
