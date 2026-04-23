@@ -1,16 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
-
-const TYPE_LABELS: Record<string, string> = {
-  day_trip: "Однодневный",
-  cultural: "Культурный",
-  adventure: "Приключения",
-  trekking: "Треккинг",
-  relax: "Отдых",
-};
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 
 const PLACEHOLDER_IMAGES = [
   "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80",
@@ -34,7 +27,18 @@ interface TourCardProps {
 }
 
 export default function TourCard({ tour, index = 0 }: TourCardProps) {
+  const t = useTranslations("tourCard");
+  const tTours = useTranslations("tours");
+  const locale = useLocale();
   const router = useRouter();
+
+  const TYPE_LABELS: Record<string, string> = {
+    day_trip: tTours("filterType_day_trip"),
+    cultural: tTours("filterType_cultural"),
+    adventure: tTours("filterType_adventure"),
+    trekking: tTours("filterType_trekking"),
+    relax: tTours("filterType_relax"),
+  };
 
   const rawImages = Array.isArray(tour.images) ? (tour.images as string[]) : [];
   const allImages =
@@ -44,11 +48,10 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const hasMultiple = allImages.length > 1;
-
-  // Track touch start for swipe
   const touchStartX = useRef<number | null>(null);
 
-  const goTo = (idx: number) => setCurrentIdx((idx + allImages.length) % allImages.length);
+  const goTo = (idx: number) =>
+    setCurrentIdx((idx + allImages.length) % allImages.length);
 
   const prev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,10 +76,16 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
     touchStartX.current = null;
   };
 
+  const durationLabel =
+    tour.duration === 1
+      ? t("days_1")
+      : tour.duration && tour.duration <= 4
+      ? t("days_2_4")
+      : t("days_5plus");
+
   const hasUpcoming = !!tour.departures?.[0];
 
   return (
-    // Outer div handles navigation — no button-inside-anchor issue
     <div
       onClick={() => router.push(`/tours/${tour.slug}`)}
       className="group block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-pointer"
@@ -87,11 +96,6 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
         onTouchStart={hasMultiple ? onTouchStart : undefined}
         onTouchEnd={hasMultiple ? onTouchEnd : undefined}
       >
-        {/*
-          Sliding strip: all images laid out side-by-side in a single row.
-          Translating X by -currentIdx * (100 / allImages.length) percent
-          reveals the correct image with a smooth CSS transition.
-        */}
         <div
           className="flex h-full transition-transform duration-300 ease-out will-change-transform"
           style={{
@@ -107,7 +111,7 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
             >
               <Image
                 src={src}
-                alt={`${tour.title} — фото ${i + 1}`}
+                alt={t("photo", { n: i + 1 })}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -127,19 +131,18 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
         {/* Duration */}
         {tour.duration && (
           <div className="absolute top-3 right-3 z-10 bg-black/50 backdrop-blur-sm text-white text-xs font-heading font-600 px-3 py-1 rounded-full pointer-events-none">
-            {tour.duration}{" "}
-            {tour.duration === 1 ? "день" : tour.duration <= 4 ? "дня" : "дней"}
+            {tour.duration} {durationLabel}
           </div>
         )}
 
-        {/* Prev / Next buttons — only when multiple images */}
+        {/* Prev / Next buttons */}
         {hasMultiple && (
           <>
             <button
               type="button"
               onClick={prev}
               className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/75 transition-colors duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity"
-              aria-label="Предыдущее фото"
+              aria-label={t("prevPhoto")}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -150,7 +153,7 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
               type="button"
               onClick={next}
               className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/75 transition-colors duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity"
-              aria-label="Следующее фото"
+              aria-label={t("nextPhoto")}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -168,9 +171,11 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
                     goTo(i);
                   }}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === currentIdx ? "bg-white w-4" : "bg-white/55 w-1.5 hover:bg-white/80"
+                    i === currentIdx
+                      ? "bg-white w-4"
+                      : "bg-white/55 w-1.5 hover:bg-white/80"
                   }`}
-                  aria-label={`Фото ${i + 1}`}
+                  aria-label={t("photo", { n: i + 1 })}
                 />
               ))}
             </div>
@@ -186,22 +191,24 @@ export default function TourCard({ tour, index = 0 }: TourCardProps) {
 
         <div className="flex items-center justify-between mt-4">
           <div>
-            <span className="text-xs text-gray-400 font-heading uppercase tracking-wider">от</span>
+            <span className="text-xs text-gray-400 font-heading uppercase tracking-wider">
+              {t("from")}
+            </span>
             <div className="font-heading font-900 text-brand-blue text-xl">
-              {tour.basePrice.toLocaleString("ru")}{" "}
-              <span className="text-sm font-600">сом</span>
+              {tour.basePrice.toLocaleString(locale === "en" ? "en-US" : "ru")}{" "}
+              <span className="text-sm font-600">{t("currency")}</span>
             </div>
           </div>
 
           {hasUpcoming && (
             <div className="text-xs font-heading font-700 uppercase tracking-wide text-green-400">
-              Есть даты
+              {t("hasDates")}
             </div>
           )}
         </div>
 
         <div className="mt-4 flex items-center gap-1 text-brand-blue font-heading font-700 text-sm uppercase tracking-wider group-hover:gap-2 transition-all duration-200">
-          Подробнее
+          {t("details")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>

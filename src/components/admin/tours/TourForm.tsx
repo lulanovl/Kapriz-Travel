@@ -29,6 +29,14 @@ interface TourFormData {
   included: string[];
   notIncluded: string[];
   images: string[];
+  // EN translations
+  titleEn: string;
+  descriptionEn: string;
+  itineraryEn: ItineraryDay[];
+  includedEn: string[];
+  notIncludedEn: string[];
+  seoTitleEn: string;
+  seoDescriptionEn: string;
 }
 
 interface Props {
@@ -66,6 +74,7 @@ const TABS = [
   { id: "itinerary", label: "Программа" },
   { id: "included", label: "Включено/нет" },
   { id: "seo", label: "SEO" },
+  { id: "translation", label: "Перевод (EN)" },
 ];
 
 export default function TourForm({ tourId, initialData }: Props) {
@@ -93,6 +102,13 @@ export default function TourForm({ tourId, initialData }: Props) {
     included: [],
     notIncluded: [],
     images: [],
+    titleEn: "",
+    descriptionEn: "",
+    itineraryEn: [],
+    includedEn: [],
+    notIncludedEn: [],
+    seoTitleEn: "",
+    seoDescriptionEn: "",
     ...initialData,
   });
 
@@ -499,6 +515,105 @@ export default function TourForm({ tourId, initialData }: Props) {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Tab: Translation (EN) ── */}
+      {activeTab === "translation" && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
+            Если поля не заполнены — на английской версии сайта отображается русский текст (fallback).
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Название тура (EN)
+            </label>
+            <input
+              type="text"
+              value={form.titleEn}
+              onChange={(e) => set("titleEn", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ala-Kul Lake Trek"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Описание (EN)
+            </label>
+            <textarea
+              value={form.descriptionEn}
+              onChange={(e) => set("descriptionEn", e.target.value)}
+              rows={5}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Detailed tour description in English..."
+            />
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Программа (EN)</h3>
+            <ItineraryBuilder
+              value={form.itineraryEn}
+              onChange={(v) => set("itineraryEn", v)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">Включено (EN)</h3>
+              <ListEditor
+                value={form.includedEn}
+                onChange={(v) => set("includedEn", v)}
+                placeholder="Transfer Bishkek — ..."
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-3">Не включено (EN)</h3>
+              <ListEditor
+                value={form.notIncludedEn}
+                onChange={(v) => set("notIncludedEn", v)}
+                placeholder="Personal expenses..."
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              SEO заголовок (EN)
+            </label>
+            <input
+              type="text"
+              value={form.seoTitleEn}
+              onChange={(e) => set("seoTitleEn", e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ala-Kul Lake Trek — 4 Days | Kapriz Travel"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Recommended up to 60 characters.{" "}
+              <span className={form.seoTitleEn.length > 60 ? "text-red-500" : ""}>
+                {form.seoTitleEn.length}/60
+              </span>
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              SEO описание (EN)
+            </label>
+            <textarea
+              value={form.seoDescriptionEn}
+              onChange={(e) => set("seoDescriptionEn", e.target.value)}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Unforgettable trek through the Ala-Kul pass..."
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Recommended up to 160 characters.{" "}
+              <span className={form.seoDescriptionEn.length > 160 ? "text-red-500" : ""}>
+                {form.seoDescriptionEn.length}/160
+              </span>
+            </p>
+          </div>
         </div>
       )}
 

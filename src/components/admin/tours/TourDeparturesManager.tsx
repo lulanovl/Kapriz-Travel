@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface Departure {
@@ -15,6 +15,7 @@ interface Departure {
     maxSeats: number;
     applications: { persons: number }[];
   }[];
+  applications?: { persons: number }[];
 }
 
 interface Props {
@@ -39,6 +40,11 @@ function formatDate(dateStr: string) {
 
 export default function TourDeparturesManager({ tourId, initialDepartures }: Props) {
   const [departures, setDepartures] = useState<Departure[]>(initialDepartures);
+
+  // Sync with fresh server data after router.refresh() (e.g. when schedule rule generates new departures)
+  useEffect(() => {
+    setDepartures(initialDepartures);
+  }, [initialDepartures]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ departureDate: "", note: "" });
   const [loading, setLoading] = useState(false);
@@ -192,9 +198,16 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                     )}
 
                     <div className="flex items-center gap-4 mt-2 flex-wrap">
-                      <span className="text-xs text-gray-500">
-                        {dep._count.applications} заявок
-                      </span>
+                      {(() => {
+                        const unassignedPersons = dep.applications?.reduce((s, a) => s + a.persons, 0) ?? 0;
+                        const totalGroupPersons = dep.groups.reduce(
+                          (s, g) => s + g.applications.reduce((ps, a) => ps + a.persons, 0), 0
+                        );
+                        const total = unassignedPersons + totalGroupPersons;
+                        return total > 0 ? (
+                          <span className="text-xs text-gray-500">{total} чел.</span>
+                        ) : null;
+                      })()}
 
                       {dep.groups.length > 0 ? (
                         <span className="text-xs text-blue-600 font-medium">
@@ -204,11 +217,14 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                             return `${g.name}: ${gPersons}/${g.maxSeats}`;
                           }).join(", ")}
                         </span>
-                      ) : dep._count.applications > 0 ? (
-                        <span className="text-xs text-yellow-600 font-medium">
-                          Нераспределённые: {dep._count.applications}
-                        </span>
-                      ) : null}
+                      ) : (() => {
+                        const unassignedPersons = dep.applications?.reduce((s, a) => s + a.persons, 0) ?? dep._count.applications;
+                        return unassignedPersons > 0 ? (
+                          <span className="text-xs text-yellow-600 font-medium">
+                            Нераспределённые: {unassignedPersons} чел.
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
 
                     {summary && (
@@ -228,7 +244,7 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <Link
                       href={`/admin/departures/${dep.id}`}
                       className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
@@ -236,20 +252,20 @@ export default function TourDeparturesManager({ tourId, initialDepartures }: Pro
                       Открыть
                     </Link>
 
-                    {dep.status === "OPEN" && (
+                    {/* Toggle switch: Активен / Неактивен */}
+                    {dep.status !== "CANCELLED" && (
                       <button
-                        onClick={() => changeStatus(dep.id, "CLOSED")}
-                        className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50"
+                        onClick={() => changeStatus(dep.id, dep.status === "OPEN" ? "CLOSED" : "OPEN")}
+                        title={dep.status === "OPEN" ? "Деактивировать" : "Активировать"}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                          dep.status === "OPEN" ? "bg-green-500" : "bg-gray-300"
+                        }`}
                       >
-                        Деактивировать
-                      </button>
-                    )}
-                    {dep.status === "CLOSED" && (
-                      <button
-                        onClick={() => changeStatus(dep.id, "OPEN")}
-                        className="text-sm text-gray-500 hover:text-green-700 px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-green-50"
-                      >
-                        Активировать
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                            dep.status === "OPEN" ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
                       </button>
                     )}
 

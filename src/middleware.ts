@@ -1,12 +1,15 @@
+import createIntlMiddleware from "next-intl/middleware";
 import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { routing } from "./i18n/routing";
 
-export default withAuth(
-  function middleware(req) {
+const intlMiddleware = createIntlMiddleware(routing);
+
+const authMiddleware = withAuth(
+  function onSuccess(req) {
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Finance role: finance, reports, salary, tours (read-only), departures (expenses), dashboard
     if (
       token?.role === "FINANCE" &&
       !pathname.startsWith("/admin/finance") &&
@@ -29,6 +32,30 @@ export default withAuth(
   }
 );
 
+export default function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+
+  // Admin + login: NextAuth protection only
+  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) {
+    return (authMiddleware as unknown as (req: NextRequest) => NextResponse)(
+      req
+    );
+  }
+
+  // API routes: no locale needed
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Guide pages: no locale needed
+  if (pathname.startsWith("/guide")) {
+    return NextResponse.next();
+  }
+
+  // Public site: locale routing
+  return intlMiddleware(req);
+}
+
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/((?!_next|_vercel|.*\\..*).*)"],
 };

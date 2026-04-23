@@ -108,10 +108,17 @@ model Tour {
   isActive       Boolean  @default(true)
   images         Json?
   mapEmbed       String?
-  seoTitle       String?
-  seoDescription String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  seoTitle         String?
+  seoDescription   String?
+  titleEn          String?
+  descriptionEn    String?  @db.Text
+  itineraryEn      Json?
+  includedEn       Json?
+  notIncludedEn    Json?
+  seoTitleEn       String?
+  seoDescriptionEn String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   schedules    TourSchedule[]
   departures   Departure[]

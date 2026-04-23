@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-const counters = [
-  { value: 2500, suffix: "+", label: "Довольных туристов" },
-  { value: 6, suffix: "", label: "Лет работы" },
-  { value: 13, suffix: "+", label: "Уникальных маршрутов" },
-  { value: 5, suffix: "", label: "Стран охвата" },
-];
+import { useTranslations } from "next-intl";
 
 function useCountUp(target: number, active: boolean) {
   const [count, setCount] = useState(0);
@@ -32,14 +26,24 @@ function useCountUp(target: number, active: boolean) {
   return count;
 }
 
-function Counter({ value, suffix, label }: (typeof counters)[0]) {
+function Counter({
+  value,
+  suffix,
+  label,
+}: {
+  value: number;
+  suffix: string;
+  label: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
   const count = useCountUp(value, active);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setActive(true); },
+      ([entry]) => {
+        if (entry.isIntersecting) setActive(true);
+      },
       { threshold: 0.5 }
     );
     if (ref.current) observer.observe(ref.current);
@@ -49,7 +53,8 @@ function Counter({ value, suffix, label }: (typeof counters)[0]) {
   return (
     <div ref={ref} className="text-center">
       <div className="font-heading font-black text-4xl sm:text-5xl text-brand-lime">
-        {count.toLocaleString("ru")}{suffix}
+        {count.toLocaleString("ru")}
+        {suffix}
       </div>
       <div className="font-heading font-600 text-white/60 text-sm uppercase tracking-wider mt-2">
         {label}
@@ -59,6 +64,15 @@ function Counter({ value, suffix, label }: (typeof counters)[0]) {
 }
 
 export default function TrustCounters() {
+  const t = useTranslations("trustCounters");
+
+  const counters = [
+    { value: 2500, suffix: "+", label: t("tourists") },
+    { value: 6, suffix: "", label: t("years") },
+    { value: 13, suffix: "+", label: t("routes") },
+    { value: 5, suffix: "", label: t("countries") },
+  ];
+
   return (
     <section className="bg-brand-blue-dark py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

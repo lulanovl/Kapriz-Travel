@@ -40,6 +40,10 @@ export default async function TourDetailPage({
             },
           },
           _count: { select: { applications: true } },
+          applications: {
+            where: { groupId: null },
+            select: { persons: true },
+          },
         },
         orderBy: { departureDate: "asc" },
       },
@@ -52,6 +56,9 @@ export default async function TourDetailPage({
   const included = (tour.included as string[]) ?? [];
   const notIncluded = (tour.notIncluded as string[]) ?? [];
   const images = (tour.images as string[]) ?? [];
+  const itineraryEn = (tour.itineraryEn as { day: number; title: string; description: string }[]) ?? [];
+  const includedEn = (tour.includedEn as string[]) ?? [];
+  const notIncludedEn = (tour.notIncludedEn as string[]) ?? [];
 
   return (
     <>
@@ -81,6 +88,13 @@ export default async function TourDetailPage({
                   included,
                   notIncluded,
                   images,
+                  titleEn: tour.titleEn,
+                  descriptionEn: tour.descriptionEn,
+                  itineraryEn,
+                  includedEn,
+                  notIncludedEn,
+                  seoTitleEn: tour.seoTitleEn,
+                  seoDescriptionEn: tour.seoDescriptionEn,
                 }} />
               </div>
             ) : (

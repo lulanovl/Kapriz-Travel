@@ -1,5 +1,3 @@
-// Root / — public home page (manually wraps with Header/Footer)
-// The (site)/layout.tsx handles Header/Footer for all sub-routes (/tours, /about, etc.)
 export const dynamic = "force-dynamic";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
@@ -8,6 +6,7 @@ import PopularTours from "@/components/site/PopularTours";
 import TrustCounters from "@/components/site/TrustCounters";
 import WhyUs from "@/components/site/WhyUs";
 import { prisma } from "@/lib/prisma";
+import { getLocale } from "next-intl/server";
 
 async function getPopularTours() {
   return prisma.tour.findMany({
@@ -26,7 +25,12 @@ async function getPopularTours() {
 }
 
 export default async function HomePage() {
-  const tours = await getPopularTours();
+  const [tours, locale] = await Promise.all([getPopularTours(), getLocale()]);
+
+  const localizedTours = tours.map((tour) => ({
+    ...tour,
+    title: locale === "en" ? (tour.titleEn ?? tour.title) : tour.title,
+  }));
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -34,7 +38,7 @@ export default async function HomePage() {
       <main className="flex-1 pt-16">
         <HeroSection />
         <TrustCounters />
-        <PopularTours tours={tours} />
+        <PopularTours tours={localizedTours} />
         <WhyUs />
       </main>
       <Footer />

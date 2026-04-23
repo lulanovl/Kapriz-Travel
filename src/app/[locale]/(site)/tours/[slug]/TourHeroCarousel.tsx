@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 interface Props {
   images: string[];
@@ -10,17 +11,19 @@ interface Props {
   tourType?: string | null;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  day_trip: "Однодневный",
-  cultural: "Культурный",
-  adventure: "Приключения",
-  trekking: "Треккинг",
-  relax: "Отдых",
-};
-
 export default function TourHeroCarousel({ images, title, tourType }: Props) {
+  const t = useTranslations("tourDetail");
+  const tTours = useTranslations("tours");
   const [currentIdx, setCurrentIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
+
+  const TYPE_LABELS: Record<string, string> = {
+    day_trip: tTours("filterType_day_trip"),
+    cultural: tTours("filterType_cultural"),
+    adventure: tTours("filterType_adventure"),
+    trekking: tTours("filterType_trekking"),
+    relax: tTours("filterType_relax"),
+  };
 
   const goTo = (idx: number) =>
     setCurrentIdx((idx + images.length) % images.length);
@@ -72,7 +75,7 @@ export default function TourHeroCarousel({ images, title, tourType }: Props) {
             >
               <Image
                 src={src}
-                alt={`${title} — фото ${i + 1}`}
+                alt={`${title} — ${i + 1}`}
                 fill
                 className="object-cover opacity-80"
                 priority={i === 0}
@@ -90,10 +93,20 @@ export default function TourHeroCarousel({ images, title, tourType }: Props) {
           href="/tours"
           className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-2 rounded-full text-sm font-heading font-700 hover:bg-white/20 transition-colors duration-200 cursor-pointer"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16l-4-4m0 0l4-4m-4 4h18"
+            />
           </svg>
-          Все туры
+          {t("backToTours")}
         </Link>
 
         {/* Prev / Next arrows */}
@@ -103,20 +116,40 @@ export default function TourHeroCarousel({ images, title, tourType }: Props) {
               type="button"
               onClick={prev}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors duration-150"
-              aria-label="Предыдущее фото"
+              aria-label={t("prevPhoto")}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
               type="button"
               onClick={next}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/60 transition-colors duration-150"
-              aria-label="Следующее фото"
+              aria-label={t("nextPhoto")}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </>
@@ -156,7 +189,7 @@ export default function TourHeroCarousel({ images, title, tourType }: Props) {
                     ? "ring-2 ring-brand-lime opacity-100"
                     : "opacity-50 hover:opacity-80"
                 }`}
-                aria-label={`Фото ${i + 1}`}
+                aria-label={t("photoLabel", { n: i + 1 })}
               >
                 <Image
                   src={img}

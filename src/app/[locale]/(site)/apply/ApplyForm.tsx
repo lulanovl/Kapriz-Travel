@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import CountryAutocomplete from "@/components/CountryAutocomplete";
 import { normalizePhone } from "@/lib/phone";
 
@@ -34,22 +36,9 @@ interface FormData {
   utmCampaign: string;
 }
 
-function formatDeparture(dep: Departure): string {
-  const date = new Date(dep.departureDate).toLocaleDateString("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const remaining = dep.maxSeats !== null ? dep.maxSeats - dep.applicationCount : null;
-  let suffix = "";
-  if (remaining !== null && remaining <= 5) {
-    suffix = remaining <= 0 ? " · Мест нет" : ` · Осталось ${remaining} мест`;
-  }
-  return `${date}${suffix}`;
-}
-
 function ApplyFormInner({ tours }: { tours: Tour[] }) {
+  const t = useTranslations("apply");
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -71,7 +60,6 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [datesLoading, setDatesLoading] = useState(false);
 
-  // Pre-fill tour/departure from URL params + capture UTMs
   useEffect(() => {
     const tourSlug = searchParams.get("tour");
     const departureId = searchParams.get("departure") ?? "";
@@ -91,7 +79,6 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     }));
   }, [searchParams, tours]);
 
-  // Load available departures when tour changes
   useEffect(() => {
     if (!form.tourId) {
       setDepartures([]);
@@ -114,10 +101,26 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     set("whatsapp", normalizePhone(raw));
   }
 
+  function formatDeparture(dep: Departure): string {
+    const date = new Date(dep.departureDate).toLocaleDateString(
+      locale === "en" ? "en-US" : "ru-RU",
+      { weekday: "long", day: "numeric", month: "long", year: "numeric" }
+    );
+    const remaining =
+      dep.maxSeats !== null ? dep.maxSeats - dep.applicationCount : null;
+    let suffix = "";
+    if (remaining !== null && remaining <= 5) {
+      suffix =
+        remaining <= 0
+          ? ` · ${t("noSeats")}`
+          : ` · ${t("seatsLeft", { n: remaining })}`;
+    }
+    return `${date}${suffix}`;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-
     setLoading(true);
     try {
       const res = await fetch("/api/site/apply", {
@@ -137,14 +140,13 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
         }),
       });
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.error ?? "Произошла ошибка. Попробуйте ещё раз.");
+        setError(data.error ?? t("errorGeneric"));
       } else {
         router.push("/apply/thanks");
       }
     } catch {
-      setError("Ошибка сети. Проверьте подключение.");
+      setError(t("errorNetwork"));
     } finally {
       setLoading(false);
     }
@@ -157,40 +159,80 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
     "block font-heading font-700 text-gray-700 text-xs uppercase tracking-wider mb-2";
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-8 space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-2xl shadow-sm p-8 space-y-6"
+    >
       {/* Name */}
       <div>
-        <label htmlFor="name" className={labelClass}>Имя и фамилия <span className="text-red-500">*</span></label>
-        <input id="name" type="text" required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Айбек Мамытбеков" className={inputClass} />
+        <label htmlFor="name" className={labelClass}>
+          {t("nameLbl")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="name"
+          type="text"
+          required
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="Айбек Мамытбеков"
+          className={inputClass}
+        />
       </div>
 
       {/* WhatsApp */}
       <div>
-        <label htmlFor="whatsapp" className={labelClass}>Номер WhatsApp <span className="text-red-500">*</span></label>
-        <input id="whatsapp" type="tel" required value={form.whatsapp} onChange={(e) => handleWhatsappChange(e.target.value)} placeholder="+996 700 000 000" className={inputClass} />
-        <p className="text-gray-400 text-xs mt-1.5">На этот номер мы напишем в WhatsApp</p>
+        <label htmlFor="whatsapp" className={labelClass}>
+          {t("whatsappLbl")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="whatsapp"
+          type="tel"
+          required
+          value={form.whatsapp}
+          onChange={(e) => handleWhatsappChange(e.target.value)}
+          placeholder="+996 700 000 000"
+          className={inputClass}
+        />
+        <p className="text-gray-400 text-xs mt-1.5">{t("whatsappHint")}</p>
       </div>
 
       {/* Country */}
       <div>
-        <label htmlFor="country" className={labelClass}>Страна <span className="text-red-500">*</span></label>
+        <label htmlFor="country" className={labelClass}>
+          {t("countryLbl")} <span className="text-red-500">*</span>
+        </label>
         <CountryAutocomplete
           id="country"
           required
           value={form.country}
           onChange={(val) => set("country", val)}
-          placeholder="Кыргызстан"
+          placeholder={locale === "en" ? "Kyrgyzstan" : "Кыргызстан"}
           inputClassName={inputClass}
         />
       </div>
 
       {/* Tour */}
       <div>
-        <label htmlFor="tourId" className={labelClass}>Тур <span className="text-red-500">*</span></label>
-        <select id="tourId" required value={form.tourId} onChange={(e) => set("tourId", e.target.value)} className={`${inputClass} cursor-pointer`}>
-          <option value="">— Выберите тур —</option>
-          {tours.map((t) => (
-            <option key={t.id} value={t.id}>{t.title} — {t.basePrice.toLocaleString("ru")} сом</option>
+        <label htmlFor="tourId" className={labelClass}>
+          {t("tourLbl")} <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="tourId"
+          required
+          value={form.tourId}
+          onChange={(e) => set("tourId", e.target.value)}
+          className={`${inputClass} cursor-pointer`}
+        >
+          <option value="">{t("tourPlaceholder")}</option>
+          {tours.map((tour) => (
+            <option key={tour.id} value={tour.id}>
+              {tour.title} —{" "}
+              {t("tourPrice", {
+                price: tour.basePrice.toLocaleString(
+                  locale === "en" ? "en-US" : "ru"
+                ),
+              })}
+            </option>
           ))}
         </select>
       </div>
@@ -198,14 +240,16 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
       {/* Departure date */}
       {form.tourId && (
         <div>
-          <label htmlFor="departureId" className={labelClass}>Дата выезда</label>
+          <label htmlFor="departureId" className={labelClass}>
+            {t("departureLbl")}
+          </label>
           {datesLoading ? (
             <div className="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-sm text-gray-400 bg-gray-50">
-              Загружаем даты...
+              {t("datesLoading")}
             </div>
           ) : departures.length === 0 ? (
             <div className="w-full px-4 py-3.5 border border-yellow-200 rounded-xl text-sm text-yellow-700 bg-yellow-50">
-              Нет доступных дат. Мы уточним дату по WhatsApp.
+              {t("noDatesWarning")}
             </div>
           ) : (
             <select
@@ -214,7 +258,7 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
               onChange={(e) => set("departureId", e.target.value)}
               className={`${inputClass} cursor-pointer`}
             >
-              <option value="">— Уточним по WhatsApp —</option>
+              <option value="">{t("departureAsk")}</option>
               {departures.map((dep) => (
                 <option key={dep.id} value={dep.id}>
                   {formatDeparture(dep)}
@@ -227,22 +271,47 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
 
       {/* Persons */}
       <div>
-        <label htmlFor="persons" className={labelClass}>Кол-во человек</label>
-        <select id="persons" value={form.persons} onChange={(e) => set("persons", e.target.value)} className={`${inputClass} cursor-pointer`}>
+        <label htmlFor="persons" className={labelClass}>
+          {t("personsLbl")}
+        </label>
+        <select
+          id="persons"
+          value={form.persons}
+          onChange={(e) => set("persons", e.target.value)}
+          className={`${inputClass} cursor-pointer`}
+        >
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <option key={n} value={n}>{n} {n === 1 ? "человек" : n <= 4 ? "человека" : "человек"}</option>
+            <option key={n} value={n}>
+              {n}{" "}
+              {n === 1
+                ? t("person_1")
+                : n <= 4
+                ? t("person_2_4")
+                : t("person_5plus")}
+            </option>
           ))}
         </select>
       </div>
 
       {/* Comment */}
       <div>
-        <label htmlFor="comment" className={labelClass}>Комментарий / пожелания</label>
-        <textarea id="comment" rows={3} value={form.comment} onChange={(e) => set("comment", e.target.value)} placeholder="Особые пожелания, вопросы..." className={`${inputClass} resize-none`} />
+        <label htmlFor="comment" className={labelClass}>
+          {t("commentLbl")}
+        </label>
+        <textarea
+          id="comment"
+          rows={3}
+          value={form.comment}
+          onChange={(e) => set("comment", e.target.value)}
+          placeholder={t("commentPlaceholder")}
+          className={`${inputClass} resize-none`}
+        />
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 font-body">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 font-body">
+          {error}
+        </div>
       )}
 
       <button
@@ -253,24 +322,39 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
         {loading ? (
           <>
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
-            Отправляем...
+            {t("submitting")}
           </>
-        ) : "Отправить заявку"}
+        ) : (
+          t("submitBtn")
+        )}
       </button>
 
-      <p className="text-gray-400 text-xs text-center">
-        Нажимая кнопку, вы соглашаетесь с обработкой персональных данных
-      </p>
+      <p className="text-gray-400 text-xs text-center">{t("consent")}</p>
     </form>
   );
 }
 
 export default function ApplyForm({ tours }: { tours: Tour[] }) {
   return (
-    <Suspense fallback={<div className="bg-white rounded-2xl shadow-sm p-8 animate-pulse h-96" />}>
+    <Suspense
+      fallback={
+        <div className="bg-white rounded-2xl shadow-sm p-8 animate-pulse h-96" />
+      }
+    >
       <ApplyFormInner tours={tours} />
     </Suspense>
   );

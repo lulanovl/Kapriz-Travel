@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import Providers from "./providers";
 import Analytics from "@/components/site/Analytics";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -25,13 +26,14 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-visual",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
-    <html lang="ru">
+    <html lang={locale}>
       <body className={`${montserrat.variable} antialiased`}>
         <Analytics />
         <Providers>{children}</Providers>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface ItineraryDay {
   day: number;
@@ -14,6 +15,7 @@ export default function ItineraryView({
   itinerary: unknown;
   title: string;
 }) {
+  const t = useTranslations("tourDetail");
   const [openDay, setOpenDay] = useState<number | null>(0);
 
   if (!Array.isArray(itinerary) || itinerary.length === 0) return null;
@@ -23,7 +25,7 @@ export default function ItineraryView({
   return (
     <div>
       <h2 className="font-heading font-800 text-gray-900 uppercase text-xl mb-6">
-        Программа тура
+        {t("itineraryHeading")}
       </h2>
       <div className="space-y-3">
         {days.map((day, i) => (
@@ -43,7 +45,7 @@ export default function ItineraryView({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-heading font-700 text-gray-900 text-sm uppercase tracking-wide">
-                  День {day.day}
+                  {t("dayLabel", { n: day.day })}
                 </div>
                 <div className="font-heading font-800 text-gray-800 text-base leading-tight truncate">
                   {day.title}

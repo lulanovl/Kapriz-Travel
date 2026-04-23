@@ -21,6 +21,13 @@ interface TourData {
   included: string[];
   notIncluded: string[];
   images?: string[];
+  titleEn?: string | null;
+  descriptionEn?: string | null;
+  itineraryEn?: { day: number; title: string; description: string }[];
+  includedEn?: string[];
+  notIncludedEn?: string[];
+  seoTitleEn?: string | null;
+  seoDescriptionEn?: string | null;
 }
 
 export default function TourEditClient({ tour }: { tour: TourData }) {
@@ -106,6 +113,13 @@ export default function TourEditClient({ tour }: { tour: TourData }) {
           included: tour.included,
           notIncluded: tour.notIncluded,
           images: tour.images ?? [],
+          titleEn: tour.titleEn ?? "",
+          descriptionEn: tour.descriptionEn ?? "",
+          itineraryEn: tour.itineraryEn ?? [],
+          includedEn: tour.includedEn ?? [],
+          notIncludedEn: tour.notIncludedEn ?? [],
+          seoTitleEn: tour.seoTitleEn ?? "",
+          seoDescriptionEn: tour.seoDescriptionEn ?? "",
         }}
       />
     </div>

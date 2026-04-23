@@ -118,6 +118,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
 
   const [groups, setGroups] = useState<Group[]>(departure.groups);
   const [unassigned, setUnassigned] = useState<Application[]>(departure.applications);
+  const [transitioning, setTransitioning] = useState(false);
 
   // Staff available for NEW group: exclude anyone already assigned in this departure
   const assignedGuideIds = new Set(groups.map(g => g.guide?.id).filter((id): id is string => !!id));
@@ -243,8 +244,9 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
   async function handleDeleteGroup(groupId: string) {
     const group = groups.find((g) => g.id === groupId);
     if (!group) return;
+    const groupPersons = group.applications.reduce((s, a) => s + a.persons, 0);
     if (group.applications.length > 0) {
-      if (!confirm(`В группе ${group.applications.length} туристов. Они будут переведены в нераспределённые. Продолжить?`)) return;
+      if (!confirm(`В группе ${groupPersons} чел. (${group.applications.length} заявок). Они будут переведены в нераспределённые. Продолжить?`)) return;
     } else {
       if (!confirm(`Удалить группу "${group.name}"?`)) return;
     }
@@ -341,6 +343,22 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
+  async function handleStartTour() {
+    if (!confirm("Перевести все активные заявки в статус «В туре»?")) return;
+    setTransitioning(true);
+    const res = await fetch(`/api/admin/departures/${departure.id}/start-tour`, { method: "POST" });
+    setTransitioning(false);
+    if (res.ok) {
+      // Update local state: all eligible unassigned apps → ON_TOUR
+      const eligible = new Set(["NEW", "CONTACT", "PROPOSAL", "DEPOSIT", "IN_BUS"]);
+      setUnassigned((prev) => prev.map((a) => eligible.has(a.status) ? { ...a, status: "ON_TOUR" } : a));
+      setGroups((prev) => prev.map((g) => ({
+        ...g,
+        applications: g.applications.map((a) => eligible.has(a.status) ? { ...a, status: "ON_TOUR" } : a),
+      })));
+    }
+  }
+
   const depDate = new Date(departure.departureDate).toLocaleDateString("ru-RU", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
@@ -397,6 +415,39 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
           </div>
         </div>
       )}
+      {/* Auto ON_TOUR banner: shown when departure date is today or past */}
+      {canEdit && (() => {
+        const depDateTime = new Date(departure.departureDate);
+        depDateTime.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const eligible = new Set(["NEW", "CONTACT", "PROPOSAL", "DEPOSIT", "IN_BUS"]);
+        const eligibleCount = [
+          ...unassigned.filter((a) => eligible.has(a.status)),
+          ...groups.flatMap((g) => g.applications.filter((a) => eligible.has(a.status))),
+        ].length;
+        if (depDateTime <= today && eligibleCount > 0) {
+          return (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-green-900">День выезда</p>
+                <p className="text-xs text-green-700 mt-0.5">
+                  {eligibleCount} заявок ещё не переведены в «В туре». Нажмите кнопку чтобы обновить статусы автоматически.
+                </p>
+              </div>
+              <button
+                onClick={handleStartTour}
+                disabled={transitioning}
+                className="shrink-0 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              >
+                {transitioning ? "Обновляем..." : "Перевести в «В туре»"}
+              </button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {/* Header card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
