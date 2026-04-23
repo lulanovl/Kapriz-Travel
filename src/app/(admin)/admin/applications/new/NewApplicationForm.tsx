@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CountryAutocomplete from "@/components/CountryAutocomplete";
+import { normalizePhone } from "@/lib/phone";
 
 type Tour = {
   id: string;
@@ -120,7 +121,7 @@ export default function NewApplicationForm({
               type="text"
               required
               value={clientWhatsapp}
-              onChange={(e) => setClientWhatsapp(e.target.value)}
+              onChange={(e) => setClientWhatsapp(normalizePhone(e.target.value))}
               disabled={isFromClient}
               placeholder="+996 700 000000"
               className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${isFromClient ? "border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed" : "border-gray-200"}`}

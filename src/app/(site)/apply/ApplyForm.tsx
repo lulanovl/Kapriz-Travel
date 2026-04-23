@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import CountryAutocomplete from "@/components/CountryAutocomplete";
+import { normalizePhone } from "@/lib/phone";
 
 interface Tour {
   id: string;
@@ -110,16 +111,7 @@ function ApplyFormInner({ tours }: { tours: Tour[] }) {
   }
 
   function handleWhatsappChange(raw: string) {
-    let v = raw;
-    // "0..." → "+996..."
-    if (v.startsWith("0")) {
-      v = "+996" + v.slice(1);
-    }
-    // "996..." (without leading +) → "+996..."
-    if (/^996/.test(v)) {
-      v = "+" + v;
-    }
-    set("whatsapp", v);
+    set("whatsapp", normalizePhone(raw));
   }
 
   async function handleSubmit(e: React.FormEvent) {
