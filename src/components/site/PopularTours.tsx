@@ -49,15 +49,17 @@ export default function PopularTours({ tours }: { tours: Tour[] }) {
 
         {/* CTA */}
         <div className="text-center mt-12">
-          <Link
-            href="/apply"
+          <a
+            href="https://wa.me/996508100210"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-brand-blue text-white font-heading font-800 uppercase tracking-wider text-sm px-8 py-4 rounded-full hover:bg-brand-blue-dark transition-colors duration-200 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             Не нашли нужный тур? Напишите нам
-          </Link>
+          </a>
         </div>
       </div>
     </section>
