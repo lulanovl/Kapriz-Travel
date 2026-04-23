@@ -42,9 +42,9 @@ async function getTour(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string; locale: string }>;
+  params: { slug: string; locale: string };
 }): Promise<Metadata> {
-  const { slug, locale } = await params;
+  const { slug, locale } = params;
   const tour = await getTour(slug);
   if (!tour) return { title: "Tour not found" };
   const loc = getLocalizedTour(tour, locale);
@@ -57,9 +57,9 @@ export async function generateMetadata({
 export default async function TourPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const { slug } = await params;
+  const { slug } = params;
   const [tour, t, locale] = await Promise.all([
     getTour(slug),
     getTranslations("tourDetail"),
