@@ -35,8 +35,8 @@ const authMiddleware = withAuth(
 export default function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // Admin + login: NextAuth protection only
-  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) {
+  // Admin: NextAuth protection only
+  if (pathname.startsWith("/admin")) {
     return (authMiddleware as unknown as (req: NextRequest) => NextResponse)(
       req
     );
