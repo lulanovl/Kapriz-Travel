@@ -42,8 +42,8 @@ export default function middleware(req: NextRequest) {
     );
   }
 
-  // API routes: no locale needed
-  if (pathname.startsWith("/api")) {
+  // Auth + API routes: no locale needed
+  if (pathname.startsWith("/login") || pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
