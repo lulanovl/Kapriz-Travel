@@ -27,7 +27,7 @@ export default async function CalendarPage() {
           _count: { select: { applications: true } },
         },
       },
-      _count: { select: { applications: true } },
+      applications: { select: { persons: true, status: true } },
     },
   });
 
@@ -35,7 +35,9 @@ export default async function CalendarPage() {
     id: dep.id,
     departureDate: dep.departureDate.toISOString(),
     tour: dep.tour,
-    applicationsCount: dep._count.applications,
+    applicationsCount: dep.applications
+      .filter((a) => a.status !== "ARCHIVE")
+      .reduce((s, a) => s + a.persons, 0),
     maxSeats: dep.groups.reduce((s, g) => s + g.maxSeats, 0),
     guide: dep.groups[0]?.guide ?? null,
     driver: dep.groups[0]?.driver ?? null,
