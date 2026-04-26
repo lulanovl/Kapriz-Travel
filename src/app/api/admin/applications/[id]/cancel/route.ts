@@ -50,16 +50,10 @@ export async function POST(
       data: { groupId: null, status: "ARCHIVE" },
     });
 
-    if (application.booking) {
+    if (application.booking && refundDeposit) {
       await tx.booking.update({
         where: { id: application.booking.id },
-        data: {
-          noShow: true,
-          guidePaymentStatus: "NO_SHOW",
-          ...(refundDeposit
-            ? { depositPaid: 0, paymentStatus: "PENDING", depositDate: null }
-            : {}),
-        },
+        data: { depositPaid: 0, paymentStatus: "PENDING", depositDate: null },
       });
     }
   });

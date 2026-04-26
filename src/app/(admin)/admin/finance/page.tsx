@@ -184,6 +184,7 @@ export default async function FinancePage({
   // ── Calculation helpers ──
 
   type AppWithBooking = {
+    status: string;
     persons: number;
     booking: {
       finalPrice: number;
@@ -197,13 +198,16 @@ export default async function FinancePage({
 
   const bookingRevenue = (a: AppWithBooking) => {
     if (!a.booking) return 0;
-    if (a.booking.noShow || a.booking.guidePaymentStatus === "NO_SHOW")
-      return a.booking.depositPaid;
+    // ARCHIVE = advance cancellation: company keeps whatever deposit was paid (0 if refunded)
+    if (a.status === "ARCHIVE") return a.booking.depositPaid;
+    if (a.booking.guidePaymentStatus === "NO_SHOW") return a.booking.depositPaid;
     return a.booking.finalPrice;
   };
 
   const guideRemainder = (a: AppWithBooking) => {
     if (!a.booking) return 0;
+    // ARCHIVE = cancelled in advance: guide collects nothing from this tourist
+    if (a.status === "ARCHIVE") return 0;
     const gps = a.booking.guidePaymentStatus;
     // NO_SHOW: guide gets nothing (company keeps deposit)
     // TRANSFERRED: tourist paid company directly, guide never held this money
@@ -226,7 +230,7 @@ export default async function FinancePage({
     const deposits = allApps.reduce((s, a) => s + (a.booking?.depositPaid ?? 0), 0);
     const revenue  = allApps.reduce((s, a) => s + bookingRevenue(a), 0);
 
-    const noShowApps  = allApps.filter((a) => a.booking?.guidePaymentStatus === "NO_SHOW" || a.booking?.noShow === true);
+    const noShowApps  = allApps.filter((a) => a.status === "NO_SHOW");
     const noShowCount = noShowApps.length;
     const noShowLoss  = noShowApps.reduce(
       (s, a) => s + Math.max(0, (a.booking?.finalPrice ?? 0) - (a.booking?.depositPaid ?? 0)),
