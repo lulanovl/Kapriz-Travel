@@ -66,8 +66,8 @@ function WaLink({ phone }: { phone: string }) {
   );
 }
 
-function AppCard({ app, selected, onSelect, canEdit }: {
-  app: Application; selected: boolean; onSelect: () => void; canEdit: boolean;
+function AppCard({ app, selected, onSelect, canEdit, onSplit }: {
+  app: Application; selected: boolean; onSelect: () => void; canEdit: boolean; onSplit?: () => void;
 }) {
   const balance = app.booking ? app.booking.finalPrice - app.booking.depositPaid : null;
   return (
@@ -89,6 +89,14 @@ function AppCard({ app, selected, onSelect, canEdit }: {
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${STATUS_COLORS[app.status] ?? "bg-gray-100 text-gray-500"}`}>
             {STATUS_LABELS[app.status] ?? app.status}
           </span>
+          {canEdit && onSplit && app.persons > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSplit(); }}
+              className="text-xs text-purple-600 hover:text-purple-800 hover:underline"
+            >
+              Разделить
+            </button>
+          )}
         </div>
         {app.client.country && <p className="text-xs text-gray-400">{app.client.country}</p>}
         <WaLink phone={app.client.whatsapp} />
@@ -136,6 +144,11 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", guideId: "", driverId: "", maxSeats: "15" });
   const [editLoading, setEditLoading] = useState(false);
+
+  // Split application
+  const [splitTarget, setSplitTarget] = useState<Application | null>(null);
+  const [splitPersonsA, setSplitPersonsA] = useState(1);
+  const [splitLoading, setSplitLoading] = useState(false);
 
   // Guide link toast
   const [guideToast, setGuideToast] = useState<{ url: string; expiresAt: string } | null>(null);
@@ -218,6 +231,22 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
           : g
       ));
       setSelected(new Set());
+    }
+  }
+
+  async function handleSplit() {
+    if (!splitTarget) return;
+    setSplitLoading(true);
+    const res = await fetch(`/api/admin/applications/${splitTarget.id}/split`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ personsA: splitPersonsA }),
+    });
+    setSplitLoading(false);
+    if (res.ok) {
+      const { original, newApplication } = await res.json();
+      setUnassigned((prev) => prev.map((a) => a.id === original.id ? original : a).concat(newApplication));
+      setSplitTarget(null);
     }
   }
 
@@ -512,6 +541,7 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                     selected={selected.has(app.id)}
                     onSelect={() => toggleSelect(app.id)}
                     canEdit={canEdit}
+                    onSplit={() => { setSplitTarget(app); setSplitPersonsA(Math.floor(app.persons / 2)); }}
                   />
                 ))}
               </div>
@@ -945,6 +975,59 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
           )}
         </div>
       </div>
+
+      {/* Split modal */}
+      {splitTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Разделить заявку</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              {splitTarget.client.name} — {splitTarget.persons} чел.
+            </p>
+
+            <div className="flex items-center gap-4 mb-2">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Автобус 1</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={splitTarget.persons - 1}
+                  value={splitPersonsA}
+                  onChange={(e) => setSplitPersonsA(Math.max(1, Math.min(splitTarget.persons - 1, Number(e.target.value))))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="pt-4 text-gray-400 font-bold">+</div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Автобус 2</label>
+                <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-medium">
+                  {splitTarget.persons - splitPersonsA} чел.
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 mb-5">
+              Депозит и история оплат останутся в первой заявке. Вторая создаётся с нулевым депозитом.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSplitTarget(null)}
+                className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleSplit}
+                disabled={splitLoading || splitPersonsA < 1 || splitPersonsA >= splitTarget.persons}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium"
+              >
+                {splitLoading ? "Разделяем..." : "Разделить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
