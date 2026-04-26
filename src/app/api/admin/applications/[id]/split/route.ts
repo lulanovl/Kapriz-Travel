@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Каждая часть должна иметь минимум 1 человека" }, { status: 400 });
   }
 
-  const [updatedOriginal, newApplication] = await prisma.$transaction(async (tx) => {
+  const [, newApplication] = await prisma.$transaction(async (tx) => {
     const updated = await tx.application.update({
       where: { id: params.id },
       data: { persons: personsA },
