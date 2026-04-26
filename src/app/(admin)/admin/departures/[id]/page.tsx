@@ -39,7 +39,7 @@ export default async function DeparturePage({ params }: { params: { id: string }
       },
       // unassigned applications
       applications: {
-        where: { groupId: null },
+        where: { groupId: null, status: { not: "ARCHIVE" } },
         include: {
           client: { select: { id: true, name: true, whatsapp: true, country: true } },
           booking: {
