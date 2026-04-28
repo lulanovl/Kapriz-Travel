@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     id: string;
     departureDate: Date;
     tour: { title: string };
-    applications: { persons: number }[];
+    applications: { persons: number; status: string }[];
   }[] = [];
 
   try {
@@ -106,8 +106,7 @@ export default async function DashboardPage() {
           include: {
             tour: { select: { title: true } },
             applications: {
-              where: { status: { not: "ARCHIVE" } },
-              select: { persons: true },
+              select: { persons: true, status: true },
             },
           },
         }),
@@ -288,7 +287,7 @@ export default async function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {dep.applications.reduce((s, a) => s + a.persons, 0)} чел.
+                    {dep.applications.filter(a => a.status !== "ARCHIVE").reduce((s, a) => s + a.persons, 0)} чел.
                   </p>
                 </div>
               ))}
