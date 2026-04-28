@@ -1,20 +1,50 @@
 import Header from "@/components/admin/Header";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ManagersReport from "./ManagersReport";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReportsPage() {
+function getMondayOfWeek(d: Date): Date {
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  mon.setHours(0, 0, 0, 0);
+  return mon;
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: { period?: string };
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (!["ADMIN", "SENIOR_MANAGER", "FINANCE"].includes(session.user.role)) {
     redirect("/admin");
   }
 
-  const [totalApps, byStatus, bySource, topTours] = await Promise.all([
+  const period = searchParams.period ?? "month";
+  const now = new Date();
+  let dateFilter: { gte: Date; lte: Date } | undefined;
+
+  if (period === "week") {
+    const mon = getMondayOfWeek(now);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    sun.setHours(23, 59, 59, 999);
+    dateFilter = { gte: mon, lte: sun };
+  } else if (period === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    dateFilter = { gte: start, lte: end };
+  }
+
+  const [totalApps, byStatus, bySource, topTours, touristAgg] = await Promise.all([
     prisma.application.count(),
     prisma.application.groupBy({ by: ["status"], _count: { id: true } }),
     prisma.application.groupBy({
@@ -29,7 +59,18 @@ export default async function ReportsPage() {
       orderBy: { _count: { id: "desc" } },
       take: 5,
     }),
+    prisma.application.aggregate({
+      _sum: { persons: true },
+      where: {
+        status: { notIn: ["ARCHIVE"] },
+        ...(dateFilter
+          ? { departure: { departureDate: dateFilter } }
+          : {}),
+      },
+    }),
   ]);
+
+  const totalTourists = touristAgg._sum.persons ?? 0;
 
   const tourIds = topTours.map((t) => t.tourId);
   const tours = await prisma.tour.findMany({
@@ -50,12 +91,66 @@ export default async function ReportsPage() {
     ARCHIVE: "Архив",
   };
 
+  const PERIOD_TABS = [
+    { id: "week", label: "Неделя" },
+    { id: "month", label: "Месяц" },
+    { id: "all", label: "Всё время" },
+  ];
+
+  const periodLabel =
+    period === "week" ? "за текущую неделю" :
+    period === "month" ? "за текущий месяц" :
+    "за всё время";
+
   const canSeeManagers = ["ADMIN", "SENIOR_MANAGER"].includes(session.user.role);
 
   return (
     <>
       <Header title="Отчёты" />
       <div className="p-6 space-y-8">
+
+        {/* ── Tourist count by period ────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              Туристов обслужено
+            </h2>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              {PERIOD_TABS.map((tab) => (
+                <Link
+                  key={tab.id}
+                  href={`/admin/reports?period=${tab.id}`}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    period === tab.id
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6 flex items-center gap-8">
+            <div className="shrink-0">
+              <p className="text-6xl font-bold text-gray-900 tabular-nums">
+                {totalTourists.toLocaleString("ru")}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">человек</p>
+            </div>
+            <div className="border-l border-gray-100 pl-8">
+              <p className="text-sm text-gray-700 font-medium mb-1">
+                Сумма всех туристов {periodLabel}
+              </p>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Считается по полю «кол-во человек» в каждой заявке — уже включает
+                попутчиков, даже если у них нет номера в базе. Отменённые заявки
+                не учитываются.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* ── General stats ─────────────────────────────────────────────── */}
         <div>
