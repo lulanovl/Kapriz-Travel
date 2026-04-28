@@ -149,7 +149,7 @@ export default async function GuidePage({
                   <p className="text-xs text-blue-500 font-medium">Гид</p>
                   <p className="text-sm font-semibold text-gray-900 mt-0.5">{group.guide.name}</p>
                   {group.guide.phone && (
-                    <a href={`tel:${group.guide.phone}`} className="text-xs text-blue-600 hover:underline">
+                    <a href={`https://wa.me/${group.guide.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
                       {group.guide.phone}
                     </a>
                   )}
@@ -160,7 +160,7 @@ export default async function GuidePage({
                   <p className="text-xs text-green-500 font-medium">Водитель</p>
                   <p className="text-sm font-semibold text-gray-900 mt-0.5">{group.driver.name}</p>
                   {group.driver.phone && (
-                    <a href={`tel:${group.driver.phone}`} className="text-xs text-green-600 hover:underline">
+                    <a href={`https://wa.me/${group.driver.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline">
                       {group.driver.phone}
                     </a>
                   )}
