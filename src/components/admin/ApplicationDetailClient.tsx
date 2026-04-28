@@ -153,6 +153,7 @@ export default function ApplicationDetailClient({
   const [newPhone, setNewPhone] = useState("");
   const [addingCompanion, setAddingCompanion] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [companionMsg, setCompanionMsg] = useState<string | null>(null);
 
   const currentStatus = STATUSES.find((s) => s.id === status);
   const phone = data.client.whatsapp.replace(/\D/g, "");
@@ -175,6 +176,10 @@ export default function ApplicationDetailClient({
       setNewName("");
       setNewPhone("");
       setShowAddForm(false);
+      if (created.clientCreated) {
+        setCompanionMsg(`Клиент ${created.name} добавлен в базу клиентов`);
+        setTimeout(() => setCompanionMsg(null), 4000);
+      }
     }
   };
 
@@ -775,6 +780,13 @@ export default function ApplicationDetailClient({
               >
                 {addingCompanion ? "Сохраняю..." : "Добавить попутчика"}
               </button>
+            </div>
+          )}
+
+          {/* Auto-client notification */}
+          {companionMsg && (
+            <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+              ✓ {companionMsg}
             </div>
           )}
 
