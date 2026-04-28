@@ -75,7 +75,6 @@ export default async function DashboardPage() {
         prisma.application.count({
           where: {
             status: { in: ["CONTACT", "PROPOSAL", "DEPOSIT"] },
-            departure: { departureDate: { gte: today } },
             ...(isManager
               ? { OR: [{ managerId: userId }, { managerId: null }] }
               : {}),
@@ -287,7 +286,7 @@ export default async function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {dep.applications.filter(a => a.status !== "ARCHIVE").reduce((s, a) => s + a.persons, 0)} чел.
+                    {(dep.applications ?? []).filter(a => a.status !== "ARCHIVE").reduce((s, a) => s + a.persons, 0)} чел.
                   </p>
                 </div>
               ))}
