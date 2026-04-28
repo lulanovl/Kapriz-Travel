@@ -1,84 +1,104 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ClientsTable from "@/components/admin/ClientsTable";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 50;
+
 export default async function ClientsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; tag?: string };
+  searchParams: { q?: string; tag?: string; page?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const query = searchParams.q?.trim() ?? "";
   const tagFilter = searchParams.tag?.trim() ?? "";
+  const page = Math.max(1, parseInt(searchParams.page ?? "1"));
 
-  const clients = await prisma.client.findMany({
-    where: {
-      AND: [
-        query
-          ? {
-              OR: [
-                { name: { contains: query, mode: "insensitive" } },
-                { whatsapp: { contains: query } },
-                { country: { contains: query, mode: "insensitive" } },
-              ],
-            }
-          : {},
-        tagFilter ? { tag: { contains: tagFilter, mode: "insensitive" } } : {},
-      ],
-    },
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { applications: true } },
-      applications: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: { tour: { select: { title: true } } },
+  const where = {
+    AND: [
+      query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" as const } },
+              { whatsapp: { contains: query } },
+              { country: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {},
+      tagFilter ? { tag: { contains: tagFilter, mode: "insensitive" as const } } : {},
+    ],
+  };
+
+  const [total, clients] = await Promise.all([
+    prisma.client.count({ where }),
+    prisma.client.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+      include: {
+        _count: { select: { applications: true } },
+        applications: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            booking: {
+              select: { finalPrice: true, depositPaid: true, paymentStatus: true },
+            },
+            tour: { select: { title: true } },
+          },
+        },
       },
-    },
+    }),
+  ]);
+
+  const clientsWithSpend = clients.map((c) => {
+    const totalSpend = c.applications.reduce((sum, app) => {
+      const b = app.booking;
+      if (!b || b.paymentStatus === "PENDING") return sum;
+      return sum + (b.paymentStatus === "PAID" ? b.finalPrice : b.depositPaid);
+    }, 0);
+    return {
+      id: c.id,
+      name: c.name,
+      whatsapp: c.whatsapp,
+      country: c.country,
+      city: c.city,
+      source: c.source,
+      tag: c.tag,
+      noShow: c.noShow,
+      totalSpend,
+      applicationCount: c._count.applications,
+      lastTour: c.applications[0]?.tour?.title ?? null,
+    };
   });
 
-  // Total spend: sum finalPrice for PAID bookings, depositPaid for PARTIAL
-  const clientsWithSpend = await Promise.all(
-    clients.map(async (c) => {
-      const bookings = await prisma.booking.findMany({
-        where: {
-          application: { clientId: c.id },
-          paymentStatus: { in: ["PARTIAL", "PAID"] },
-        },
-        select: { finalPrice: true, depositPaid: true, paymentStatus: true },
-      });
-      const totalSpend = bookings.reduce(
-        (sum, b) => sum + (b.paymentStatus === "PAID" ? b.finalPrice : b.depositPaid),
-        0
-      );
-      return {
-        id: c.id,
-        name: c.name,
-        whatsapp: c.whatsapp,
-        country: c.country,
-        city: c.city,
-        source: c.source,
-        tag: c.tag,
-        noShow: c.noShow,
-        totalSpend,
-        applicationCount: c._count.applications,
-        lastTour: c.applications[0]?.tour?.title ?? null,
-      };
-    })
-  );
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (tagFilter) params.set("tag", tagFilter);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return `/admin/clients${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Клиенты</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{clients.length} клиентов</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {total} клиентов
+            {totalPages > 1 && ` · страница ${page} из ${totalPages}`}
+          </p>
         </div>
       </div>
 
@@ -129,6 +149,33 @@ export default async function ClientsPage({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+            <span className="text-xs text-gray-400">
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} из {total}
+            </span>
+            <div className="flex gap-2">
+              {page > 1 && (
+                <Link
+                  href={pageHref(page - 1)}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600"
+                >
+                  ← Назад
+                </Link>
+              )}
+              {page < totalPages && (
+                <Link
+                  href={pageHref(page + 1)}
+                  className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
+                >
+                  Вперёд →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
