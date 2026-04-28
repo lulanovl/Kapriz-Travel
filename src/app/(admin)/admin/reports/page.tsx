@@ -44,15 +44,9 @@ export default async function ReportsPage({
     dateFilter = { gte: start, lte: end };
   }
 
-  // Resolve departure IDs for the period first (avoids nested nullable-relation filter)
-  const departureIds = dateFilter
-    ? (await prisma.departure.findMany({
-        where: { departureDate: dateFilter },
-        select: { id: true },
-      })).map((d) => d.id)
-    : null;
-
-  const [totalApps, byStatus, bySource, topTours, touristAgg] = await Promise.all([
+  // Batch 1: run 5 queries in parallel (connection pool limit = 5)
+  // Include departure lookup here instead of a separate await
+  const [totalApps, byStatus, bySource, topTours, periodDepartures] = await Promise.all([
     prisma.application.count(),
     prisma.application.groupBy({ by: ["status"], _count: { id: true } }),
     prisma.application.groupBy({
@@ -67,14 +61,21 @@ export default async function ReportsPage({
       orderBy: { _count: { id: "desc" } },
       take: 5,
     }),
-    prisma.application.aggregate({
-      _sum: { persons: true },
-      where: {
-        status: { notIn: ["ARCHIVE"] },
-        ...(departureIds ? { departureId: { in: departureIds } } : {}),
-      },
-    }),
+    dateFilter
+      ? prisma.departure.findMany({ where: { departureDate: dateFilter }, select: { id: true } })
+      : Promise.resolve(null as { id: string }[] | null),
   ]);
+
+  const departureIds = periodDepartures?.map((d) => d.id) ?? null;
+
+  // Batch 2: sequential — tourist aggregate (uses departure IDs from batch 1)
+  const touristAgg = await prisma.application.aggregate({
+    _sum: { persons: true },
+    where: {
+      status: { notIn: ["ARCHIVE"] },
+      ...(departureIds ? { departureId: { in: departureIds } } : {}),
+    },
+  });
 
   const totalTourists = touristAgg._sum.persons ?? 0;
 

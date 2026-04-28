@@ -56,6 +56,109 @@ const STATUS_LABELS: Record<string, string> = {
 const EXPENSE_CURRENCIES = ["KGS", "USD", "EUR"];
 const EXPENSE_CATEGORIES = ["Гид", "Водитель", "Транспорт", "Проживание", "Питание", "Топливо", "Прочее"];
 
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder = "— Не выбрано —",
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = options.find((o) => o.value === value);
+  const filtered = options.filter((o) =>
+    o.label.toLowerCase().includes(query.toLowerCase())
+  );
+
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, []);
+
+  function pick(val: string) {
+    onChange(val);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div ref={containerRef} className={`relative ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((o) => !o);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      >
+        <span className={selected ? "text-gray-900" : "text-gray-400"}>
+          {selected?.label ?? placeholder}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ml-2 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск..."
+              className="w-full border border-gray-200 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => pick("")}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? "bg-blue-50 text-blue-700" : "text-gray-400"}`}
+            >
+              {placeholder}
+            </button>
+            {filtered.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => pick(o.value)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                  value === o.value ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">Не найдено</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WaLink({ phone }: { phone: string }) {
   const clean = phone.replace(/\D/g, "");
   return (
@@ -600,17 +703,21 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Гид</label>
-                  <select value={groupForm.guideId} onChange={(e) => setGroupForm((f) => ({ ...f, guideId: e.target.value }))} className={inputClass}>
-                    <option value="">— Не назначен —</option>
-                    {freeGuides.map((g) => <option key={g.id} value={g.id}>{g.name}{g.phone ? ` (${g.phone})` : ""}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={groupForm.guideId}
+                    onChange={(v) => setGroupForm((f) => ({ ...f, guideId: v }))}
+                    options={freeGuides.map((g) => ({ value: g.id, label: g.name + (g.phone ? ` (${g.phone})` : "") }))}
+                    placeholder="— Не назначен —"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Водитель</label>
-                  <select value={groupForm.driverId} onChange={(e) => setGroupForm((f) => ({ ...f, driverId: e.target.value }))} className={inputClass}>
-                    <option value="">— Не назначен —</option>
-                    {freeDrivers.map((d) => <option key={d.id} value={d.id}>{d.name}{d.phone ? ` (${d.phone})` : ""}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={groupForm.driverId}
+                    onChange={(v) => setGroupForm((f) => ({ ...f, driverId: v }))}
+                    options={freeDrivers.map((d) => ({ value: d.id, label: d.name + (d.phone ? ` (${d.phone})` : "") }))}
+                    placeholder="— Не назначен —"
+                  />
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
@@ -681,17 +788,21 @@ export default function DepartureDetailClient({ departure, staff, canEdit, canMa
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Гид</label>
-                            <select value={editForm.guideId} onChange={(e) => setEditForm((f) => ({ ...f, guideId: e.target.value }))} className={inputClass}>
-                              <option value="">— Не назначен —</option>
-                              {editGuides.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                            </select>
+                            <SearchableSelect
+                              value={editForm.guideId}
+                              onChange={(v) => setEditForm((f) => ({ ...f, guideId: v }))}
+                              options={editGuides.map((g) => ({ value: g.id, label: g.name }))}
+                              placeholder="— Не назначен —"
+                            />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Водитель</label>
-                            <select value={editForm.driverId} onChange={(e) => setEditForm((f) => ({ ...f, driverId: e.target.value }))} className={inputClass}>
-                              <option value="">— Не назначен —</option>
-                              {editDrivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
+                            <SearchableSelect
+                              value={editForm.driverId}
+                              onChange={(v) => setEditForm((f) => ({ ...f, driverId: v }))}
+                              options={editDrivers.map((d) => ({ value: d.id, label: d.name }))}
+                              placeholder="— Не назначен —"
+                            />
                           </div>
                         </div>
                         <div className="flex gap-2">
