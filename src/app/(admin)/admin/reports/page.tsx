@@ -44,6 +44,14 @@ export default async function ReportsPage({
     dateFilter = { gte: start, lte: end };
   }
 
+  // Resolve departure IDs for the period first (avoids nested nullable-relation filter)
+  const departureIds = dateFilter
+    ? (await prisma.departure.findMany({
+        where: { departureDate: dateFilter },
+        select: { id: true },
+      })).map((d) => d.id)
+    : null;
+
   const [totalApps, byStatus, bySource, topTours, touristAgg] = await Promise.all([
     prisma.application.count(),
     prisma.application.groupBy({ by: ["status"], _count: { id: true } }),
@@ -63,9 +71,7 @@ export default async function ReportsPage({
       _sum: { persons: true },
       where: {
         status: { notIn: ["ARCHIVE"] },
-        ...(dateFilter
-          ? { departure: { departureDate: dateFilter } }
-          : {}),
+        ...(departureIds ? { departureId: { in: departureIds } } : {}),
       },
     }),
   ]);
