@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     id: string;
     departureDate: Date;
     tour: { title: string };
-    _count: { applications: number };
+    applications: { persons: number }[];
   }[] = [];
 
   try {
@@ -75,6 +75,7 @@ export default async function DashboardPage() {
         prisma.application.count({
           where: {
             status: { in: ["CONTACT", "PROPOSAL", "DEPOSIT"] },
+            departure: { departureDate: { gte: today } },
             ...(isManager
               ? { OR: [{ managerId: userId }, { managerId: null }] }
               : {}),
@@ -104,7 +105,10 @@ export default async function DashboardPage() {
           take: 5,
           include: {
             tour: { select: { title: true } },
-            _count: { select: { applications: true } },
+            applications: {
+              where: { status: { not: "ARCHIVE" } },
+              select: { persons: true },
+            },
           },
         }),
       ]);
@@ -284,7 +288,7 @@ export default async function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {dep._count.applications} заявок
+                    {dep.applications.reduce((s, a) => s + a.persons, 0)} чел.
                   </p>
                 </div>
               ))}
